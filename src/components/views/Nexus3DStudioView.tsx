@@ -592,7 +592,7 @@ export function Nexus3DStudioView() {
   };
 
   return (
-    <div className="flex-1 flex overflow-hidden bg-background">
+    <div className="flex-1 flex overflow-auto bg-background">
       {/* Left Sidebar — Scene Tree / Rig / Animate */}
       <aside className="w-64 border-r border-border flex flex-col bg-[#252526] flex-shrink-0">
         {/* Header */}

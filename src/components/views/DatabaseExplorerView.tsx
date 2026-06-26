@@ -153,7 +153,7 @@ export function DatabaseExplorerView() {
     : records;
 
   return (
-    <div className="flex-1 flex overflow-hidden bg-background">
+    <div className="flex-1 flex overflow-auto bg-background">
       {/* Sidebar: Models */}
       <aside className="w-64 border-r border-border flex flex-col bg-[#252526] flex-shrink-0">
         <div className="p-3 border-b border-border">

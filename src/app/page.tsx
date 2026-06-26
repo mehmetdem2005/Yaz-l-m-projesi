@@ -240,9 +240,9 @@ export default function Home() {
         {/* SidePanel — mode'a göre view listesi */}
         <SidePanel />
 
-        {/* Main Viewport — aktif view */}
+        {/* Main Viewport — aktif view (scroll aktif) */}
         <div className="flex-1 flex flex-col min-w-0">
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden jarvis-scrollbar studio-view">
             {renderView()}
           </div>
           {/* Console/Terminal */}
@@ -278,15 +278,17 @@ function PortraitBlocker() {
     const check = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
-      // Mobil cihaz tespiti (dokunmatik + küçük ekran)
-      const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      const isSmallScreen = Math.min(w, h) < 768;
-      // Sadece mobil cihazlarda ve dikey modda engelle
-      setIsPortrait(isMobile && isSmallScreen && h > w);
+      // Ekran dikey ise (yükseklik > genişlik) her zaman engelle
+      // PC'de dar pencere, mobilde dikey tutma — farketmez
+      setIsPortrait(h > w);
     };
     check();
     window.addEventListener('resize', check);
     window.addEventListener('orientationchange', check);
+    // Ekran döndüğünde anında kontrol et
+    if (screen.orientation) {
+      screen.orientation.addEventListener('change', check);
+    }
     return () => {
       window.removeEventListener('resize', check);
       window.removeEventListener('orientationchange', check);

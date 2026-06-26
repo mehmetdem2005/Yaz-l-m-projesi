@@ -223,7 +223,7 @@ export function ApiTesterView() {
   };
 
   return (
-    <div className="flex-1 flex overflow-hidden bg-background">
+    <div className="flex-1 flex overflow-auto bg-background">
       {/* Sidebar: Request list */}
       <aside className="w-56 border-r border-border flex flex-col bg-[#252526] flex-shrink-0">
         <div className="p-2 border-b border-border flex items-center justify-between">

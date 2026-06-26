@@ -50,7 +50,7 @@ export function Policies() {
   };
 
   return (
-    <div className="flex-1 flex overflow-hidden bg-background">
+    <div className="flex-1 flex overflow-auto bg-background">
       {/* Sidebar: Policy List */}
       <aside className="w-80 border-r border-border flex flex-col flex-shrink-0">
         <div className="p-3 border-b border-border">
