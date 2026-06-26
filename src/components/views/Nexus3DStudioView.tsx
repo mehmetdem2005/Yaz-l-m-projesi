@@ -512,7 +512,6 @@ export function Nexus3DStudioView() {
   const [showWireframe, setShowWireframe] = useState(false);
   const [activeTab, setActiveTab] = useState<'scene' | 'rig' | 'animate' | 'material' | 'fx' | 'render' | 'ai' | 'library'>('scene');
   const [selectedBone, setSelectedBone] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [fps, setFps] = useState(30);
   const [animationDuration, setAnimationDuration] = useState(2.0);
