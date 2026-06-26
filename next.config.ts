@@ -9,12 +9,6 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   reactStrictMode: false,
-  // Turbopack devre dışı — webpack kullan
-  // (Vercel'de @tailwindcss/postcss modülü bulunamıyor sorunu için)
-  turbopack: false as any,
-  webpack: (config: any) => {
-    return config;
-  },
 };
 
 export default nextConfig;
