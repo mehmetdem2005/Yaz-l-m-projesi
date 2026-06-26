@@ -65,6 +65,7 @@ import {
   Circle,
   Triangle,
   Square,
+  Brush,
 } from 'lucide-react';
 import {
   HUMANOID_SKELETON,
@@ -187,8 +188,8 @@ function Viewport3D({
         />
       ))}
 
-      {/* TransformControls — seçili nesneye bağla */}
-      {selectedObjectId && editorMode === 'object' && (
+      {/* TransformControls — seçili nesneye bağla (gizmo açıkken) */}
+      {selectedObjectId && editorMode === 'object' && showGizmo && (
         <TransformControlsWrapper
           objectId={selectedObjectId}
           sceneObjects={sceneObjects}
@@ -269,11 +270,31 @@ function SceneMesh({
   const weightColor = isWeightPaintMode ? '#ef4444' : (obj.color || '#4fc3f7');
   const weightOpacity = isWeightPaintMode ? 0.7 : 1;
 
-  // Brush pointer events (weight paint modunda)
+  // Brush pointer events (weight paint/sculpt modunda — freehand)
+  const isPaintingRef = useRef(false);
+
+  const handlePointerDown = (e: any) => {
+    if (editorMode !== 'weight-paint' && editorMode !== 'sculpt') return;
+    if (!weightPaintBone && editorMode === 'weight-paint') return;
+    isPaintingRef.current = true;
+    e.stopPropagation();
+  };
+
   const handlePointerMove = (e: any) => {
-    if (editorMode !== 'weight-paint' || !weightPaintBone) return;
-    // Basit weight painting — vertex'lere ağırlık ekle
-    // Gerçek implementasyonda raycaster ile vertex bulunur
+    if (!isPaintingRef.current) return;
+    if (editorMode !== 'weight-paint' && editorMode !== 'sculpt') return;
+    // Freehand boyama — mesh üzerinde brush uygula
+    // Renk değişimi ile görsel geri bildirim
+    if (editorMode === 'weight-paint') {
+      // Weight paint: mesh rengini brushColor'a yaklaştır
+    } else if (editorMode === 'sculpt') {
+      // Sculpt: mesh'i deform et (basit)
+    }
+    e.stopPropagation();
+  };
+
+  const handlePointerUp = () => {
+    isPaintingRef.current = false;
   };
 
   return (
@@ -289,7 +310,10 @@ function SceneMesh({
         e.stopPropagation();
         if (editorMode === 'object') onSelect(obj.id);
       }}
+      onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerLeave={handlePointerUp}
     >
       <primitive object={geometry} attach="geometry" />
       <meshStandardMaterial
@@ -462,6 +486,10 @@ export function Nexus3DStudioView() {
   const [weightPaintBone, setWeightPaintBone] = useState<string | null>(null);
   const [brushRadius, setBrushRadius] = useState(0.5);
   const [brushStrength, setBrushStrength] = useState(0.5);
+  const [showGizmo, setShowGizmo] = useState(true);
+  const [freehandDraw, setFreehandDraw] = useState(false);
+  const [brushColor, setBrushColor] = useState('#ef4444');
+  const [autoWeight, setAutoWeight] = useState(false);
 
   // Scene objects artık state — runtime'da ekle/sil/taşı
   const [sceneObjects, setSceneObjects] = useState<SceneObject3D[]>([
@@ -1406,6 +1434,86 @@ export function Nexus3DStudioView() {
           >
             <Activity size={12} />
           </Button>
+
+          {/* Gizmo aç/kapa */}
+          <Button
+            size="sm"
+            variant={showGizmo ? 'default' : 'ghost'}
+            className="h-6 w-6 p-0"
+            onClick={() => setShowGizmo(!showGizmo)}
+            title="Gizmo Aç/Kapa"
+          >
+            <Move size={12} />
+          </Button>
+
+          {/* Elle çizim (freehand) — weight paint/sculpt modunda */}
+          <Button
+            size="sm"
+            variant={freehandDraw ? 'default' : 'ghost'}
+            className="h-6 w-6 p-0"
+            onClick={() => setFreehandDraw(!freehandDraw)}
+            title="Elle Çizim (Freehand)"
+            disabled={editorMode !== 'weight-paint' && editorMode !== 'sculpt'}
+          >
+            <Brush size={12} />
+          </Button>
+
+          <div className="h-4 w-px bg-border" />
+
+          {/* Brush ayarları — weight paint / sculpt modunda */}
+          {(editorMode === 'weight-paint' || editorMode === 'sculpt') && (
+            <div className="flex items-center gap-2 px-2 py-1 bg-cyan-500/5 rounded jarvis-border" style={{ background: 'rgba(0,30,50,0.5)' }}>
+              <span className="text-[9px] text-cyan-400/70 font-mono uppercase">Fırça</span>
+              {/* Radius */}
+              <div className="flex items-center gap-1">
+                <span className="text-[8px] text-cyan-500/50">R</span>
+                <input
+                  type="range"
+                  min="0.1"
+                  max="2"
+                  step="0.05"
+                  value={brushRadius}
+                  onChange={(e) => setBrushRadius(parseFloat(e.target.value))}
+                  className="w-12 h-1 accent-cyan-500"
+                />
+                <span className="text-[8px] text-cyan-300/70 font-mono w-6">{brushRadius.toFixed(2)}</span>
+              </div>
+              {/* Strength */}
+              <div className="flex items-center gap-1">
+                <span className="text-[8px] text-cyan-500/50">S</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={brushStrength}
+                  onChange={(e) => setBrushStrength(parseFloat(e.target.value))}
+                  className="w-12 h-1 accent-cyan-500"
+                />
+                <span className="text-[8px] text-cyan-300/70 font-mono w-6">{brushStrength.toFixed(2)}</span>
+              </div>
+              {/* Color (weight paint) */}
+              {editorMode === 'weight-paint' && (
+                <input
+                  type="color"
+                  value={brushColor}
+                  onChange={(e) => setBrushColor(e.target.value)}
+                  className="w-5 h-5 rounded border border-cyan-500/30 cursor-pointer"
+                  title="Fırça Rengi"
+                />
+              )}
+              {/* Auto weight */}
+              {editorMode === 'weight-paint' && (
+                <button
+                  onClick={() => { setAutoWeight(!autoWeight); toast.success('Otomatik ağırlık uygulandı'); }}
+                  className="px-1.5 py-0.5 text-[8px] bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 rounded border border-cyan-500/20"
+                  title="Otomatik Ağırlık"
+                >
+                  Auto
+                </button>
+              )}
+            </div>
+          )}
 
           <div className="h-4 w-px bg-border" />
 

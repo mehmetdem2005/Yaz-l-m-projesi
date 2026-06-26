@@ -491,3 +491,21 @@
   background: rgba(0, 255, 255, 0.3);
   box-shadow: 0 0 5px rgba(0, 200, 255, 0.4);
 }
+
+/* Portrait mode — ekran dikey ise tüm içeriği gizle, sadece blocker göster */
+@media (orientation: portrait) and (max-height: 768px) {
+  body {
+    overflow: hidden !important;
+  }
+}
+
+/* Touch action — mobilde dokunmatik kaydırmayı iyileştir */
+.studio-view {
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+}
+
+/* Canvas touch — pinch zoom'u engelle */
+canvas {
+  touch-action: none;
+}
