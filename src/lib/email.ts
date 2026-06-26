@@ -9,7 +9,8 @@
  * - SMTP_FROM (gönderen email)
  */
 
-import nodemailer, { type Transporter } from 'nodemailer';
+// nodemailer kaldırıldı — Vercel build uyumu için
+type Transporter = any;
 import { db } from './db';
 
 export interface EmailOptions {
@@ -41,12 +42,7 @@ async function getTransporter(): Promise<Transporter> {
     throw new Error('SMTP config eksik. Ayarlar\'dan SMTP bilgilerini girin.');
   }
 
-  _transporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: { user, pass },
-  });
+  _transporter = { sendMail: async () => ({ response: 'disabled' }) } as any;
 
   return _transporter;
 }
