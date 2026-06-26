@@ -44,6 +44,12 @@ jobs:
         with:
           packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
 
+      - name: ☕ Install Gradle 8.2
+        run: |
+          wget -q https://services.gradle.org/distributions/gradle-8.2-bin.zip
+          unzip -q gradle-8.2-bin.zip -d $HOME
+          echo "$HOME/gradle-8.2/bin" >> $GITHUB_PATH
+
       - name: 🔨 Create Android WebView App
         run: |
           mkdir -p android-app/app/src/main/java/com/deepseekstudio/app
@@ -222,7 +228,7 @@ jobs:
       - name: 🔨 Build APK with Gradle
         working-directory: android-app
         run: |
-          gradle wrapper --gradle-version 8.2 --distribution-type bin
+          $HOME/gradle-8.2/bin/gradle wrapper --gradle-version 8.2 --distribution-type bin
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
 
