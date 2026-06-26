@@ -77,6 +77,12 @@ import {
   Triangle,
   Square,
   Brush,
+  Volume2,
+  FileCode,
+  Sun,
+  Video,
+  Music,
+  Radio,
 } from 'lucide-react';
 import {
   HUMANOID_SKELETON,
@@ -114,6 +120,18 @@ import {
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import {
+  createDefaultScene,
+  createNode,
+  addChildToNode,
+  removeNode,
+  reparentNode,
+  getNodeDepth,
+  getDescendants,
+  type SceneNode,
+  type StudioScene,
+  type NodeType,
+} from '@/lib/studio-node-system';
 
 // ---------- 3D Viewport Component ----------
 
@@ -510,84 +528,146 @@ export function Nexus3DStudioView() {
   const [brushColor, setBrushColor] = useState('#ef4444');
   const [autoWeight, setAutoWeight] = useState(false);
 
-  // Scene objects artık state — runtime'da ekle/sil/taşı
-  const [sceneObjects, setSceneObjects] = useState<SceneObject3D[]>([
-    {
-      id: 'obj_1',
-      name: 'Cube',
-      type: 'mesh',
-      geometryType: 'box',
-      visible: true,
-      locked: false,
-      position: [0, 0.5, 0],
-      rotation: [0, 0, 0],
-      scale: [1, 1, 1],
-      parentId: null,
-      children: [],
-      color: '#4fc3f7',
-      metalness: 0.3,
-      roughness: 0.4,
-    },
-  ]);
+  // ---------- Node System State ----------
+  const [scene, setScene] = useState<StudioScene>(() => createDefaultScene());
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [showScriptEditor, setShowScriptEditor] = useState(false);
 
-  const [selectedObjectId, setSelectedObjectId] = useState<string | null>('obj_1');
-  const selectedObject = sceneObjects.find((o) => o.id === selectedObjectId) || null;
-  const objectName = selectedObject?.name || '';
-  const position = selectedObject?.position || [0, 0, 0];
-  const rotation = selectedObject?.rotation || [0, 0, 0];
-  const scale = selectedObject?.scale || [1, 1, 1];
+  // sceneObjects'i node sisteminden türet
+  const sceneObjects: SceneObject3D[] = scene.nodes
+    .filter((n) => n.type === 'mesh' && n.visible)
+    .map((n) => ({
+      id: n.id,
+      name: n.name,
+      type: 'mesh' as const,
+      geometryType: n.geometryType || 'box',
+      visible: n.visible,
+      locked: n.locked,
+      position: n.position,
+      rotation: n.rotation,
+      scale: n.scale,
+      parentId: n.parentId,
+      children: n.childrenIds,
+      color: n.color,
+      metalness: n.metalness,
+      roughness: n.roughness,
+      wireframe: n.wireframe,
+    }));
+
+  const selectedObjectId = selectedNodeId;
+  const selectedNode = scene.nodes.find((n) => n.id === selectedNodeId) || null;
+  const selectedObject = selectedNode;
+  const objectName = selectedNode?.name || '';
+  const position = selectedNode?.position || [0, 0, 0];
+  const rotation = selectedNode?.rotation || [0, 0, 0];
+  const scale = selectedNode?.scale || [1, 1, 1];
+
+  // Node ikonları
+  const NODE_ICONS: Record<NodeType, any> = {
+    mesh: Box,
+    light: Sun,
+    camera: Video,
+    audio: Volume2,
+    empty: Layers,
+    script: FileCode,
+  };
+
+  const NODE_COLORS: Record<NodeType, string> = {
+    mesh: '#4fc3f7',
+    light: '#fbbf24',
+    camera: '#a855f7',
+    audio: '#22c55e',
+    empty: '#6b7280',
+    script: '#ec4899',
+  };
+
+  // ---------- Node Operations ----------
+  const addNode = useCallback((type: NodeType) => {
+    const newNode = createNode(type);
+    setScene((prev) => ({
+      ...prev,
+      nodes: addChildToNode(prev.nodes, prev.rootId, newNode),
+    }));
+    setSelectedNodeId(newNode.id);
+    toast.success(`${newNode.name} eklendi`);
+  }, []);
+
+  const deleteNode = useCallback((id: string) => {
+    setScene((prev) => ({
+      ...prev,
+      nodes: removeNode(prev.nodes, id),
+    }));
+    if (selectedNodeId === id) setSelectedNodeId(null);
+    toast.success('Node silindi');
+  }, [selectedNodeId]);
+
+  const updateNode = useCallback((id: string, updates: Partial<SceneNode>) => {
+    setScene((prev) => ({
+      ...prev,
+      nodes: prev.nodes.map((n) => (n.id === id ? { ...n, ...updates } : n)),
+    }));
+  }, []);
+
+  const toggleNodeExpand = useCallback((id: string) => {
+    setScene((prev) => ({
+      ...prev,
+      nodes: prev.nodes.map((n) => (n.id === id ? { ...n, expanded: !n.expanded } : n)),
+    }));
+  }, []);
+
+  const toggleNodeVisible = useCallback((id: string) => {
+    setScene((prev) => ({
+      ...prev,
+      nodes: prev.nodes.map((n) => (n.id === id ? { ...n, visible: !n.visible } : n)),
+    }));
+  }, []);
+
+  const duplicateNode = useCallback((id: string) => {
+    const original = scene.nodes.find((n) => n.id === id);
+    if (!original) return;
+    const copy = { ...original, id: `node_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, name: `${original.name} (kopya)`, position: [original.position[0] + 1, original.position[1], original.position[2]] as [number, number, number], childrenIds: [] };
+    setScene((prev) => ({
+      ...prev,
+      nodes: addChildToNode(prev.nodes, original.parentId || prev.rootId, copy),
+    }));
+    setSelectedNodeId(copy.id);
+    toast.success('Node çoğaltıldı');
+  }, [scene.nodes]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // ---------- Object Operations ----------
-
+  // updateObject — node sistemi üzerinden
   const updateObject = (id: string, updates: Partial<SceneObject3D>) => {
-    setSceneObjects((prev) => prev.map((o) => (o.id === id ? { ...o, ...updates } : o)));
+    updateNode(id, updates as any);
   };
 
+  // addObject — node sistemi üzerinden (mesh tipinde)
   const addObject = (geometryType: 'box' | 'sphere' | 'cylinder' | 'cone' | 'torus' | 'plane') => {
-    const id = `obj_${Date.now()}`;
-    const newObj: SceneObject3D = {
-      id,
-      name: `${geometryType.charAt(0).toUpperCase() + geometryType.slice(1)} ${sceneObjects.length + 1}`,
-      type: 'mesh',
-      geometryType,
-      visible: true,
-      locked: false,
-      position: [Math.random() * 2 - 1, 0.5, Math.random() * 2 - 1],
-      rotation: [0, 0, 0],
-      scale: [1, 1, 1],
-      parentId: null,
-      children: [],
-      color: '#4fc3f7',
-      metalness: 0.3,
-      roughness: 0.4,
-    };
-    setSceneObjects((prev) => [...prev, newObj]);
-    setSelectedObjectId(id);
-    toast.success(`${newObj.name} eklendi`);
+    const newNode = createNode('mesh');
+    newNode.geometryType = geometryType;
+    newNode.position = [Math.random() * 2 - 1, 0.5, Math.random() * 2 - 1];
+    newNode.name = `${geometryType.charAt(0).toUpperCase() + geometryType.slice(1)} ${Date.now().toString(36).slice(-4)}`;
+    setScene((prev) => ({
+      ...prev,
+      nodes: addChildToNode(prev.nodes, prev.rootId, newNode),
+    }));
+    setSelectedNodeId(newNode.id);
+    toast.success(`${newNode.name} eklendi`);
   };
 
+  // deleteObject — node sistemi üzerinden
   const deleteObject = (id: string) => {
-    setSceneObjects((prev) => prev.filter((o) => o.id !== id));
-    if (selectedObjectId === id) setSelectedObjectId(null);
-    toast.success('Silindi');
+    deleteNode(id);
   };
 
+  // duplicateObject — node sistemi üzerinden
   const duplicateObject = (id: string) => {
-    const original = sceneObjects.find((o) => o.id === id);
-    if (!original) return;
-    const newId = `obj_${Date.now()}`;
-    const copy: SceneObject3D = {
-      ...original,
-      id: newId,
-      name: `${original.name} (kopya)`,
-      position: [original.position[0] + 1, original.position[1], original.position[2]],
-    };
-    setSceneObjects((prev) => [...prev, copy]);
-    setSelectedObjectId(newId);
-    toast.success('Çoğaltıldı');
+    duplicateNode(id);
   };
+
+  // Scene hierarchy için setSelectedObjectId wrapper
+  const setSelectedObjectId = (id: string | null) => setSelectedNodeId(id);
 
   const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -1385,6 +1465,25 @@ export function Nexus3DStudioView() {
             </Button>
             <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]" onClick={() => addObject('plane')} title="Düzlem ekle">
               <Square size={12} className="mr-1" /> Plane
+            </Button>
+          </div>
+
+          {/* Node tipleri ekle — Light/Camera/Audio/Empty/Script */}
+          <div className="flex items-center gap-0.5 bg-[#252526] rounded p-0.5">
+            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => addNode('light')} title="Light Node ekle" style={{ color: '#fbbf24' }}>
+              <Sun size={12} />
+            </Button>
+            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => addNode('camera')} title="Camera Node ekle" style={{ color: '#a855f7' }}>
+              <Video size={12} />
+            </Button>
+            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => addNode('audio')} title="Audio Node ekle" style={{ color: '#22c55e' }}>
+              <Volume2 size={12} />
+            </Button>
+            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => addNode('empty')} title="Empty Node ekle" style={{ color: '#6b7280' }}>
+              <Layers size={12} />
+            </Button>
+            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => addNode('script')} title="Script Node ekle" style={{ color: '#ec4899' }}>
+              <FileCode size={12} />
             </Button>
           </div>
 
