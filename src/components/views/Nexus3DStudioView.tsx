@@ -249,22 +249,22 @@ function SceneMesh({
   onSelect: (id: string | null) => void;
   onUpdate: (id: string, updates: Partial<SceneObject3D>) => void;
 }) {
-  const meshRef = useRef<THREE.Mesh>(null);
+  const meshRef = useRef<any>(null);
 
   // Weight paint modunda vertex color ile ağırlık görselleştirme
   const isWeightPaintMode = editorMode === 'weight-paint' && weightPaintBone;
 
-  // Geometry based on type
-  const geometry = useMemo(() => {
-    switch (obj.geometryType) {
-      case 'sphere': return new THREE.SphereGeometry(0.5, 32, 16);
-      case 'cylinder': return new THREE.CylinderGeometry(0.5, 0.5, 1, 32);
-      case 'cone': return new THREE.ConeGeometry(0.5, 1, 32);
-      case 'torus': return new THREE.TorusGeometry(0.5, 0.2, 16, 32);
-      case 'plane': return new THREE.PlaneGeometry(2, 2);
-      default: return new THREE.BoxGeometry(1, 1, 1);
-    }
-  }, [obj.geometryType]);
+  // Geometry based on type — useMemo yerine direkt JSX
+  const geometryArgs: [number, number, number] = [1, 1, 1];
+  let geometryType: string = 'box';
+  switch (obj.geometryType) {
+    case 'sphere': geometryType = 'sphere'; break;
+    case 'cylinder': geometryType = 'cylinder'; break;
+    case 'cone': geometryType = 'cone'; break;
+    case 'torus': geometryType = 'torus'; break;
+    case 'plane': geometryType = 'plane'; break;
+    default: geometryType = 'box';
+  }
 
   // Weight paint modunda renkli vertex göster
   const weightColor = isWeightPaintMode ? '#ef4444' : (obj.color || '#4fc3f7');
@@ -315,7 +315,13 @@ function SceneMesh({
       onPointerUp={handlePointerUp}
       onPointerLeave={handlePointerUp}
     >
-      <primitive object={geometry} attach="geometry" />
+      {/* Geometry — direkt JSX (primitive yerine) */}
+      {geometryType === 'sphere' && <sphereGeometry args={[0.5, 32, 16]} />}
+      {geometryType === 'cylinder' && <cylinderGeometry args={[0.5, 0.5, 1, 32]} />}
+      {geometryType === 'cone' && <coneGeometry args={[0.5, 1, 32]} />}
+      {geometryType === 'torus' && <torusGeometry args={[0.5, 0.2, 16, 32]} />}
+      {geometryType === 'plane' && <planeGeometry args={[2, 2]} />}
+      {geometryType === 'box' && <boxGeometry args={geometryArgs} />}
       <meshStandardMaterial
         color={weightColor}
         metalness={obj.metalness ?? 0.3}
@@ -326,10 +332,15 @@ function SceneMesh({
         emissive={isWeightPaintMode ? '#ff0000' : '#000000'}
         emissiveIntensity={isWeightPaintMode ? 0.3 : 0}
       />
-      {/* Seçim çerçevesi */}
+      {/* Seçim çerçevesi — clone yerine yeni geometry */}
       {selected && editorMode === 'object' && (
         <mesh scale={[1.05, 1.05, 1.05]}>
-          <primitive object={geometry.clone()} attach="geometry" />
+          {geometryType === 'sphere' && <sphereGeometry args={[0.5, 16, 8]} />}
+          {geometryType === 'cylinder' && <cylinderGeometry args={[0.5, 0.5, 1, 16]} />}
+          {geometryType === 'cone' && <coneGeometry args={[0.5, 1, 16]} />}
+          {geometryType === 'torus' && <torusGeometry args={[0.5, 0.2, 8, 16]} />}
+          {geometryType === 'plane' && <planeGeometry args={[2, 2]} />}
+          {geometryType === 'box' && <boxGeometry args={geometryArgs} />}
           <meshBasicMaterial color="#22c55e" wireframe transparent opacity={0.4} depthTest={false} />
         </mesh>
       )}
