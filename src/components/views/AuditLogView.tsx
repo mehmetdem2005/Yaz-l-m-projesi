@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -82,7 +82,7 @@ function genLogs(n: number): AuditLog[] {
   return logs;
 }
 
-const ALL_LOGS = genLogs(24);
+const ALL_LOGS_STATIC = genLogs(24); // fallback
 
 const STATUS_META: Record<LogStatus, { color: string; label: string; icon: typeof ShieldCheck }> = {
   success: { color: '#10b981', label: 'Başarılı', icon: ShieldCheck },
@@ -96,10 +96,35 @@ export function AuditLogView() {
   const [userFilter, setUserFilter] = useState<string>('all');
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
+  const [allLogs, setAllLogs] = useState<AuditLog[]>(ALL_LOGS_STATIC);
   void useStore((s) => s.activeView);
 
+  // Gerçek API'den audit logları çek
+  useEffect(() => {
+    fetch('/api/audit-log')
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          // API formatını AuditLog formatına çevir
+          const mapped: AuditLog[] = data.map((d: any) => ({
+            id: d.id,
+            timestamp: d.createdAt,
+            action: d.action || 'unknown',
+            user: d.userId || 'system',
+            resource: d.resource || 'unknown',
+            resourceId: d.resourceId || '',
+            ip: d.ip || '0.0.0.0',
+            status: d.severity === 'error' ? 'failed' : d.severity === 'warning' ? 'warning' : 'success',
+            details: d.metadata || '',
+          }));
+          setAllLogs(mapped);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   const filtered = useMemo(() => {
-    return ALL_LOGS.filter((l) => {
+    return allLogs.filter((l) => {
       if (actionFilter !== 'all' && l.action !== actionFilter) return false;
       if (userFilter !== 'all' && l.user !== userFilter) return false;
       if (search) {

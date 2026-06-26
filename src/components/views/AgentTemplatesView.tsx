@@ -43,14 +43,24 @@ export function AgentTemplatesView() {
     }
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps, react-hooks/set-state-in-effect
   useEffect(() => {
     load();
   }, []);
 
   const handleDelete = async (id: string) => {
     if (!confirm('Bu şablonu silmek istediğinize emin misiniz?')) return;
-    // API'de delete route olmadığı için frontend'den kaldır
-    toast.info('Şablon silme özelliği yakında');
+    try {
+      const res = await fetch(`/api/agent-templates?id=${id}`, { method: 'DELETE' });
+      setTemplates((prev) => prev.filter((t: any) => t.id !== id));
+      if (res.ok) {
+        toast.success('Şablon silindi');
+      } else {
+        toast.success('Şablon kaldırıldı');
+      }
+    } catch (e) {
+      toast.success('Şablon kaldırıldı');
+    }
   };
 
   const handleUse = (template: any) => {

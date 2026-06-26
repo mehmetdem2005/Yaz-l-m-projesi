@@ -225,3 +225,116 @@ model Skill {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+// ---------- YENİ: Audit Log ----------
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  action    String   // create, update, delete, login, deploy, etc.
+  resource  String   // project, file, setting, etc.
+  resourceId String?
+  ip        String?
+  userAgent String?
+  metadata  String?  // JSON string
+  severity  String   @default("info") // info, warning, error
+  createdAt DateTime @default(now())
+
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ---------- YENİ: Cron Job ----------
+model CronJob {
+  id        String   @id @default(cuid())
+  name      String
+  schedule  String   // cron expression
+  endpoint  String   // URL to call
+  method    String   @default("GET")
+  enabled   Boolean  @default(true)
+  lastRun   DateTime?
+  nextRun   DateTime?
+  lastStatus String? // success, error
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([enabled])
+}
+
+// ---------- YENİ: Webhook ----------
+model Webhook {
+  id        String   @id @default(cuid())
+  url       String
+  event     String   // deploy, build, error, etc.
+  secret    String?
+  enabled   Boolean  @default(true)
+  lastDelivery DateTime?
+  lastStatus String? // success, error
+  createdAt DateTime @default(now())
+
+  @@index([event])
+}
+
+// ---------- YENİ: Deploy Target ----------
+model DeployTarget {
+  id        String   @id @default(cuid())
+  name      String
+  platform  String   // vercel, render, netlify, etc.
+  config    String?  // JSON string
+  status    String   @default("idle") // idle, deploying, success, error
+  lastDeploy DateTime?
+  url       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------- YENİ: Error Track ----------
+model ErrorTrack {
+  id        String   @id @default(cuid())
+  message   String
+  stack     String?
+  source    String?  // client, server
+  userId    String?
+  url       String?
+  resolved  Boolean  @default(false)
+  count     Int      @default(1)
+  firstSeen DateTime @default(now())
+  lastSeen  DateTime @default(now())
+
+  @@index([resolved])
+}
+
+// ---------- YENİ: Feature Flag ----------
+model FeatureFlag {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  name      String
+  enabled   Boolean  @default(false)
+  description String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------- YENİ: Notification ----------
+model Notification {
+  id        String   @id @default(cuid())
+  type      String   // info, success, warning, error
+  title     String
+  message   String
+  read      Boolean  @default(false)
+  userId    String?
+  createdAt DateTime @default(now())
+
+  @@index([read])
+}
+
+// ---------- YENİ: Team Member ----------
+model TeamMember {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  role      String   @default("member") // admin, member, viewer
+  status    String   @default("active") // active, invited, disabled
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
