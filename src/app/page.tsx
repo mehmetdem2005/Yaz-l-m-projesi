@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useStore } from '@/lib/store';
 import { TitleBar } from '@/components/ide/TitleBar';
 import { ActivityBar } from '@/components/ide/ActivityBar';
@@ -54,7 +55,6 @@ import { Settings } from '@/components/views/Settings';
 import { Analytics } from '@/components/views/Analytics';
 import { Docs } from '@/components/views/Docs';
 import { ExportView } from '@/components/views/ExportView';
-import { useEffect } from 'react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { ActivityBar as MobileActivityBar } from '@/components/ide/ActivityBar';
 import { applyTheme, getStoredTheme, getThemeById } from '@/lib/themes';
