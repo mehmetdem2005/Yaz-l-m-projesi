@@ -129,14 +129,16 @@ jobs:
 
           # build.gradle (app)
           cat > android-app/app/build.gradle << 'GRADLE'
-          apply plugin: 'com.android.application'
+          plugins {
+              id 'com.android.application'
+          }
           android {
               namespace 'com.deepseekstudio.app'
-              compileSdkVersion 34
+              compileSdk 34
               defaultConfig {
                   applicationId "com.deepseekstudio.app"
-                  minSdkVersion 23
-                  targetSdkVersion 34
+                  minSdk 23
+                  targetSdk 34
                   versionCode 1
                   versionName "1.0.0"
               }
@@ -155,27 +157,32 @@ jobs:
           }
           GRADLE
 
-          # build.gradle (project)
+          # build.gradle (project) — settings plugin
           cat > android-app/build.gradle << 'GRADLE'
-          buildscript {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-              dependencies {
-                  classpath 'com.android.tools.build:gradle:8.1.0'
-              }
-          }
-          allprojects {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
+          plugins {
+              id 'com.android.application' version '8.1.0' apply false
           }
           GRADLE
 
           # settings.gradle
-          echo "include ':app'" > android-app/settings.gradle
+          cat > android-app/settings.gradle << 'GRADLE'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "DeepSeekStudio"
+          include ':app'
+          GRADLE
 
           # gradle.properties
           cat > android-app/gradle.properties << 'PROP'
@@ -216,9 +223,9 @@ jobs:
       - name: 🔨 Build APK with Gradle
         working-directory: android-app
         run: |
-          gradle wrapper --gradle-version 8.2
+          gradle wrapper --gradle-version 8.2 --distribution-type bin
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon -x lint
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: 📤 Upload APK to GitHub Actions Artifacts
         uses: actions/upload-artifact@v4
