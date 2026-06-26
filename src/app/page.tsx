@@ -299,6 +299,7 @@ function PortraitBlocker() {
 
   return (
     <div
+      data-portrait-blocker="true"
       className="fixed inset-0 z-[9999] flex flex-col items-center justify-center"
       style={{ background: 'rgba(5,10,20,0.98)' }}
     >
