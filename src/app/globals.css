@@ -511,18 +511,10 @@ canvas {
 }
 
 /* ====== PORTRAIT MODE ZORUNLU ENGEL ====== */
-/* Dikey ekranda tüm içeriği gizle, sadece blocker göster */
+/* Dikey ekranda içeriği gizle */
 @media (orientation: portrait) {
-  /* Uygulama container'ını gizle */
-  #__next > div:not([data-portrait-blocker]) {
+  .portrait-hide {
     display: none !important;
-  }
-  /* Body'yi sabitle */
-  body {
-    overflow: hidden !important;
-    position: fixed !important;
-    width: 100% !important;
-    height: 100% !important;
   }
 }
 

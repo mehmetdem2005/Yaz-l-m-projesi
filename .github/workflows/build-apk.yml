@@ -53,16 +53,11 @@ jobs:
           unzip -q gradle-8.2-bin.zip -d $HOME
           echo "$HOME/gradle-8.2/bin" >> $GITHUB_PATH
 
-      - name: 🔨 Create Android WebView App
+      - name: 🔨 Create Android WebView App (loads Vercel URL)
         run: |
           mkdir -p android-app/app/src/main/java/com/deepseekstudio/app
           mkdir -p android-app/app/src/main/res/values
-          mkdir -p android-app/app/src/main/res/drawable
-          mkdir -p android-app/app/src/main/assets/www
           mkdir -p android-app/gradle/wrapper
-
-          # Web assets kopyala
-          cp -r out/* android-app/app/src/main/assets/www/ 2>/dev/null || true
 
           # AndroidManifest.xml
           cat > android-app/app/src/main/AndroidManifest.xml << 'XML'
@@ -93,7 +88,7 @@ jobs:
           </manifest>
           XML
 
-          # MainActivity.java
+          # MainActivity.java — Vercel URL yükle
           cat > android-app/app/src/main/java/com/deepseekstudio/app/MainActivity.java << 'JAVA'
           package com.deepseekstudio.app;
 
@@ -125,8 +120,9 @@ jobs:
                   settings.setSupportZoom(false);
                   settings.setBuiltInZoomControls(false);
                   settings.setMediaPlaybackRequiresUserGesture(false);
+                  settings.setCacheMode(WebSettings.LOAD_DEFAULT);
                   webView.setWebViewClient(new WebViewClient());
-                  webView.loadUrl("file:///android_asset/www/index.html");
+                  webView.loadUrl("https://deepseek-app-studio.vercel.app");
               }
               @Override
               public void onBackPressed() {
@@ -254,4 +250,28 @@ jobs:
           git add download/deepseek-app-studio.apk -f
           git commit -m "📱 APK build: $(date +%Y-%m-%d_%H-%M)" || echo "No changes"
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/mehmetdem2005/Yaz-l-m-projesi.git
-          git push || echo "Push failed — APK available in Actions Artifacts"
+          git push || echo "Push failed"
+
+      - name: 📦 Create GitHub Release with APK
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: "DeepSeek App Studio v1.0.${{ github.run_number }}"
+          body: |
+            ## 📱 APK Build #${{ github.run_number }}
+
+            **İndirme:** `deepseek-app-studio.apk` dosyasına tıkla
+
+            ### Kurulum
+            1. APK'yı indir
+            2. Telefonda "Bilinmeyen kaynaklar" izni ver
+            3. APK'yı yükle
+            4. Uygulama açılınca Vercel URL yüklenir
+
+            ### Özellikler
+            - Sadece yatay mod (landscape)
+            - WebView: https://deepseek-app-studio.vercel.app
+            - Android 6.0+ uyumlu
+          files: download/deepseek-app-studio.apk
+          draft: false
+          prerelease: false

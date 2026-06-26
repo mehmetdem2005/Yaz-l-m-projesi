@@ -229,9 +229,9 @@ export default function Home() {
 
   return (
     <>
-    {/* Dikey mod engeli — sadece yatay */}
+    {/* Dikey mod engeli — container DIŞINDA, tüm ekranda */}
     <PortraitBlocker />
-    <div className="h-screen flex flex-col overflow-hidden jarvis-grid-bg" style={{ background: 'rgba(3, 8, 18, 0.98)' }}>
+    <div className="h-screen flex flex-col overflow-hidden jarvis-grid-bg portrait-hide" style={{ background: 'rgba(3, 8, 18, 0.98)' }}>
       <TitleBar />
       <div className="flex-1 flex overflow-hidden">
         {/* ActivityBar — 5 stüdyo modu */}
