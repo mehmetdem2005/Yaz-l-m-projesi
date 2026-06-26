@@ -228,7 +228,10 @@ export default function Home() {
   };
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-background jarvis-grid-bg">
+    <>
+    {/* Dikey mod engeli — sadece yatay */}
+    <PortraitBlocker />
+    <div className="h-screen flex flex-col overflow-hidden jarvis-grid-bg" style={{ background: 'rgba(5,10,20,0.98)' }}>
       <TitleBar />
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar — her zaman görünür (PC = Mobil) */}
@@ -258,6 +261,77 @@ export default function Home() {
       <ShortcutsHelp />
       <GlobalSearch />
       <OnboardingWizard />
+    </div>
+    </>
+  );
+}
+
+// ---------- Portrait Blocker — Sadece Yatay Mod ----------
+function PortraitBlocker() {
+  const [isPortrait, setIsPortrait] = useState(false);
+
+  useEffect(() => {
+    const check = () => {
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      // Mobil cihaz tespiti (dokunmatik + küçük ekran)
+      const isMobile = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      const isSmallScreen = Math.min(w, h) < 768;
+      // Sadece mobil cihazlarda ve dikey modda engelle
+      setIsPortrait(isMobile && isSmallScreen && h > w);
+    };
+    check();
+    window.addEventListener('resize', check);
+    window.addEventListener('orientationchange', check);
+    return () => {
+      window.removeEventListener('resize', check);
+      window.removeEventListener('orientationchange', check);
+    };
+  }, []);
+
+  if (!isPortrait) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center"
+      style={{ background: 'rgba(5,10,20,0.98)' }}
+    >
+      <div className="text-center px-8">
+        {/* Dönen arc */}
+        <div className="relative w-24 h-24 mx-auto mb-6">
+          <div
+            className="absolute inset-0 rounded-full border-2 border-cyan-400/30 jarvis-arc"
+            style={{ borderTopColor: 'rgba(0,255,255,0.8)' }}
+          />
+          <div
+            className="absolute inset-2 rounded-full border border-cyan-400/20 jarvis-arc"
+            style={{ borderBottomColor: 'rgba(0,200,255,0.6)', animationDirection: 'reverse', animationDuration: '2s' }}
+          />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-cyan-400 jarvis-glow-sm">
+              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+              <path d="M3.27 6.96 12 12.01l8.73-5.05"/>
+              <path d="M12 22.08V12"/>
+            </svg>
+          </div>
+        </div>
+        <h2 className="text-cyan-300 text-xl font-bold mb-2 jarvis-glow-sm">Cihazı Yatay Tutun</h2>
+        <p className="text-cyan-400/60 text-sm mb-4">DeepSeek App Studio yatay modda çalışır</p>
+        <div className="flex items-center justify-center gap-2 text-cyan-400/40 text-xs">
+          <div className="w-12 h-20 border-2 border-cyan-400/30 rounded-md flex items-center justify-center">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-cyan-400/50">
+              <path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0z"/>
+              <path d="M12 8v4l2 2"/>
+            </svg>
+          </div>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-cyan-400/40">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+          <div className="w-20 h-12 border-2 border-cyan-400/50 rounded-md flex items-center justify-center" style={{ boxShadow: '0 0 10px rgba(0,200,255,0.2)' }}>
+            <div className="w-3 h-3 rounded-full bg-cyan-400/60 jarvis-pulse" />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
