@@ -1,0 +1,1541 @@
+     1→'use client';
+     2→
+     3→import { useState, useRef, Suspense, useMemo } from 'react';
+     4→import { Canvas } from '@react-three/fiber';
+     5→import { OrbitControls, Grid, Environment, GizmoHelper, GizmoViewport, Stats } from '@react-three/drei';
+     6→import * as THREE from 'three';
+     7→import { Button } from '@/components/ui/button';
+     8→import { Input } from '@/components/ui/input';
+     9→import { Label } from '@/components/ui/label';
+    10→import { Badge } from '@/components/ui/badge';
+    11→import { Slider } from '@/components/ui/slider';
+    12→import {
+    13→  Card,
+    14→  CardContent,
+    15→  CardHeader,
+    16→  CardTitle,
+    17→} from '@/components/ui/card';
+    18→import {
+    19→  Select,
+    20→  SelectContent,
+    21→  SelectItem,
+    22→  SelectTrigger,
+    23→  SelectValue,
+    24→} from '@/components/ui/select';
+    25→import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+    26→import {
+    27→  Box,
+    28→  Bone,
+    29→  Play,
+    30→  Pause,
+    31→  SkipBack,
+    32→  SkipForward,
+    33→  Upload,
+    34→  Download,
+    35→  Grid3x3,
+    36→  Eye,
+    37→  EyeOff,
+    38→  Lock,
+    39→  Unlock,
+    40→  Move,
+    41→  RotateCw,
+    42→  Maximize,
+    43→  Zap,
+    44→  Layers,
+    45→  Palette,
+    46→  Clock,
+    47→  ChevronRight,
+    48→  ChevronDown,
+    49→  FileBox,
+    50→  Activity,
+    51→  Cpu,
+    52→  HardDrive,
+    53→  AlertTriangle,
+    54→  CheckCircle2,
+    55→  Plus,
+    56→  Trash2,
+    57→  Copy,
+    58→  Settings,
+    59→  Camera,
+    60→  Lightbulb,
+    61→  Bone as BoneIcon,
+    62→  Sparkles,
+    63→  Users,
+    64→  Cloud,
+    65→  Search,
+    66→} from 'lucide-react';
+    67→import {
+    68→  HUMANOID_SKELETON,
+    69→  QUADRUPED_SKELETON,
+    70→  BIRD_SKELETON,
+    71→  createHumanoidSkeleton,
+    72→  createQuadrupedSkeleton,
+    73→  createBirdSkeleton,
+    74→  FORMAT_INFO,
+    75→  ANIMATION_PRESETS,
+    76→  MATERIAL_PRESETS,
+    77→  LOD_PRESETS,
+    78→  PARTICLE_PRESETS,
+    79→  PHYSICS_PRESETS,
+    80→  SHADER_NODE_TYPES,
+    81→  ASSET_LIBRARY,
+    82→  aiDetectSkeleton,
+    83→  aiGenerateAnimation,
+    84→  generateWalkCycle,
+    85→  solveCCD,
+    86→  solveFABRIK,
+    87→  generateTerrain,
+    88→  generateCity,
+    89→  getBoneColorByDepth,
+    90→  formatFileSize,
+    91→  formatNumber,
+    92→  type Bone,
+    93→  type Skeleton,
+    94→  type SceneObject3D,
+    95→  type AnimationClip,
+    96→  type Material3D,
+    97→  type ModelFormat,
+    98→  type Keyframe,
+    99→} from '@/lib/nexus-3d';
+   100→import { toast } from 'sonner';
+   101→import { motion, AnimatePresence } from 'framer-motion';
+   102→import { cn } from '@/lib/utils';
+   103→
+   104→// ---------- 3D Viewport Component ----------
+   105→
+   106→function Viewport3D({ showGrid, showStats, skeleton, showBones, showWireframe }: {
+   107→  showGrid: boolean;
+   108→  showStats: boolean;
+   109→  skeleton: Skeleton | null;
+   110→  showBones: boolean;
+   111→  showWireframe: boolean;
+   112→}) {
+   113→  return (
+   114→    <Canvas
+   115→      shadows
+   116→      camera={{ position: [3, 2, 5], fov: 50 }}
+   117→      className="bg-[#1a1a2e]"
+   118→      gl={{ antialias: true, alpha: false }}
+   119→    >
+   120→      <color attach="background" args={['#1a1a2e']} />
+   121→      <fog attach="fog" args={['#1a1a2e', 10, 50]} />
+   122→
+   123→      {/* Lighting */}
+   124→      <ambientLight intensity={0.4} />
+   125→      <directionalLight
+   126→        position={[5, 10, 5]}
+   127→        intensity={1.2}
+   128→        castShadow
+   129→        shadow-mapSize={[2048, 2048]}
+   130→        shadow-camera-left={-10}
+   131→        shadow-camera-right={10}
+   132→        shadow-camera-top={10}
+   133→        shadow-camera-bottom={-10}
+   134→      />
+   135→      <directionalLight position={[-5, 5, -5]} intensity={0.3} color="#88ccff" />
+   136→
+   137→      {/* Grid */}
+   138→      {showGrid && (
+   139→        <Grid
+   140→          args={[20, 20]}
+   141→          cellSize={0.5}
+   142→          cellThickness={0.5}
+   143→          cellColor="#3c3c3c"
+   144→          sectionSize={2}
+   145→          sectionThickness={1}
+   146→          sectionColor="#0e639c"
+   147→          fadeDistance={30}
+   148→          fadeStrength={1}
+   149→          infiniteGrid
+   150→        />
+   151→      )}
+   152→
+   153→      {/* Default mesh */}
+   154→      <mesh castShadow receiveShadow position={[0, 0.5, 0]}>
+   155→        <boxGeometry args={[1, 1, 1]} />
+   156→        <meshStandardMaterial
+   157→          color="#4fc3f7"
+   158→          metalness={0.3}
+   159→          roughness={0.4}
+   160→          wireframe={showWireframe}
+   161→        />
+   162→      </mesh>
+   163→
+   164→      {/* Floor */}
+   165→      <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
+   166→        <planeGeometry args={[50, 50]} />
+   167→        <meshStandardMaterial color="#0d0d18" metalness={0} roughness={1} />
+   168→      </mesh>
+   169→
+   170→      {/* Skeleton visualization */}
+   171→      {showBones && skeleton && <SkeletonRenderer skeleton={skeleton} />}
+   172→
+   173→      {/* Environment */}
+   174→      <Environment preset="studio" />
+   175→
+   176→      {/* Controls */}
+   177→      <OrbitControls
+   178→        enableDamping
+   179→        dampingFactor={0.05}
+   180→        minDistance={1}
+   181→        maxDistance={20}
+   182→        maxPolarAngle={Math.PI / 2 - 0.1}
+   183→      />
+   184→
+   185→      {/* Gizmo */}
+   186→      <GizmoHelper alignment="bottom-right" margin={[80, 80]}>
+   187→        <GizmoViewport axisColors={['#ef4444', '#22c55e', '#3b82f6']} labelColor="white" />
+   188→      </GizmoHelper>
+   189→
+   190→      {/* Stats */}
+   191→      {showStats && <Stats className="!left-auto !right-2 !top-2" />}
+   192→    </Canvas>
+   193→  );
+   194→}
+   195→
+   196→function SkeletonRenderer({ skeleton }: { skeleton: Skeleton }) {
+   197→  const boneMap = useMemo(() => {
+   198→    const map = new Map<string, Bone>();
+   199→    skeleton.bones.forEach((b) => map.set(b.id, b));
+   200→    return map;
+   201→  }, [skeleton]);
+   202→
+   203→  return (
+   204→    <group>
+   205→      {skeleton.bones.map((bone) => {
+   206→        if (!bone.parentId) {
+   207→          // Root bone
+   208→          return (
+   209→            <mesh key={bone.id} position={bone.position}>
+   210→              <octahedronGeometry args={[0.05]} />
+   211→              <meshStandardMaterial color={bone.color} emissive={bone.color} emissiveIntensity={0.5} />
+   212→            </mesh>
+   213→          );
+   214→        }
+   215→
+   216→        const parent = boneMap.get(bone.parentId);
+   217→        if (!parent) return null;
+   218→
+   219→        // Draw bone as octahedron + line
+   220→        const startPos = new THREE.Vector3(...parent.position);
+   221→        const endPos = new THREE.Vector3(...bone.position);
+   222→        const direction = endPos.clone().sub(startPos);
+   223→        const length = direction.length();
+   224→        const midPos = startPos.clone().add(endPos).multiplyScalar(0.5);
+   225→
+   226→        return (
+   227→          <group key={bone.id}>
+   228→            {/* Bone shape (octahedron) */}
+   229→            <mesh position={midPos.toArray()} scale={[0.03, length / 2, 0.03]}>
+   230→              <octahedronGeometry args={[1]} />
+   231→              <meshStandardMaterial
+   232→                color={bone.color}
+   233→                emissive={bone.color}
+   234→                emissiveIntensity={0.3}
+   235→                transparent
+   236→                opacity={0.7}
+   237→              />
+   238→            </mesh>
+   239→            {/* Joint */}
+   240→            <mesh position={endPos.toArray()}>
+   241→              <sphereGeometry args={[0.03, 8, 8]} />
+   242→              <meshStandardMaterial color={bone.color} emissive={bone.color} emissiveIntensity={0.6} />
+   243→            </mesh>
+   244→          </group>
+   245→        );
+   246→      })}
+   247→    </group>
+   248→  );
+   249→}
+   250→
+   251→// ---------- Main NEXUS 3D Studio View ----------
+   252→
+   253→export function Nexus3DStudioView() {
+   254→  const [skeleton, setSkeleton] = useState<Skeleton | null>(null);
+   255→  const [showGrid, setShowGrid] = useState(true);
+   256→  const [showStats, setShowStats] = useState(false);
+   257→  const [showBones, setShowBones] = useState(true);
+   258→  const [showWireframe, setShowWireframe] = useState(false);
+   259→  const [activeTab, setActiveTab] = useState<'scene' | 'rig' | 'animate' | 'material' | 'fx' | 'render' | 'ai' | 'library'>('scene');
+   260→  const [selectedBone, setSelectedBone] = useState<string | null>(null);
+   261→  const [isPlaying, setIsPlaying] = useState(false);
+   262→  const [currentTime, setCurrentTime] = useState(0);
+   263→  const [fps, setFps] = useState(30);
+   264→  const [animationDuration, setAnimationDuration] = useState(2.0);
+   265→  const [selectedMaterial, setSelectedMaterial] = useState<Material3D>(MATERIAL_PRESETS[0]);
+   266→  const [importedFiles, setImportedFiles] = useState<Array<{ name: string; format: ModelFormat; size: number; polys: number }>>([]);
+   267→  const [transformMode, setTransformMode] = useState<'move' | 'rotate' | 'scale'>('move');
+   268→  const [selectedObject, setSelectedObject] = useState<SceneObject3D | null>(null);
+   269→  const [objectName, setObjectName] = useState('Cube');
+   270→  const [position, setPosition] = useState<[number, number, number]>([0, 0.5, 0]);
+   271→  const [rotation, setRotation] = useState<[number, number, number]>([0, 0, 0]);
+   272→  const [scale, setScale] = useState<[number, number, number]>([1, 1, 1]);
+   273→
+   274→  const fileInputRef = useRef<HTMLInputElement>(null);
+   275→
+   276→  // Scene objects (simplified)
+   277→  const sceneObjects: SceneObject3D[] = [
+   278→    {
+   279→      id: 'obj_1',
+   280→      name: 'Cube',
+   281→      type: 'mesh',
+   282→      visible: true,
+   283→      locked: false,
+   284→      position: [0, 0.5, 0],
+   285→      rotation: [0, 0, 0],
+   286→      scale: [1, 1, 1],
+   287→      parentId: null,
+   288→      children: [],
+   289→    },
+   290→    {
+   291→      id: 'obj_2',
+   292→      name: 'DirectionalLight',
+   293→      type: 'light',
+   294→      visible: true,
+   295→      locked: false,
+   296→      position: [5, 10, 5],
+   297→      rotation: [0, 0, 0],
+   298→      scale: [1, 1, 1],
+   299→      parentId: null,
+   300→      children: [],
+   301→    },
+   302→    {
+   303→      id: 'obj_3',
+   304→      name: 'Camera',
+   305→      type: 'camera',
+   306→      visible: true,
+   307→      locked: false,
+   308→      position: [3, 2, 5],
+   309→      rotation: [0, 0, 0],
+   310→      scale: [1, 1, 1],
+   311→      parentId: null,
+   312→      children: [],
+   313→    },
+   314→  ];
+   315→
+   316→  const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+   317→    const files = e.target.files;
+   318→    if (!files) return;
+   319→
+   320→    for (const file of Array.from(files)) {
+   321→      const ext = file.name.split('.').pop()?.toLowerCase() as ModelFormat;
+   322→      if (!FORMAT_INFO[ext]) {
+   323→        toast.error(`Desteklenmeyen format: .${ext}`);
+   324→        continue;
+   325→      }
+   326→
+   327→      const newFile = {
+   328→        name: file.name,
+   329→        format: ext,
+   330→        size: file.size,
+   331→        polys: Math.floor(Math.random() * 50000) + 1000,
+   332→      };
+   333→      setImportedFiles((prev) => [...prev, newFile]);
+   334→      toast.success(`${file.name} yüklendi (${FORMAT_INFO[ext].name})`);
+   335→    }
+   336→  };
+   337→
+   338→  const handleAddSkeleton = (type: 'humanoid' | 'quadruped') => {
+   339→    const skel = type === 'humanoid' ? createHumanoidSkeleton() : createQuadrupedSkeleton();
+   340→    setSkeleton(skel);
+   341→    toast.success(`${skel.name} skeleton eklendi (${skel.totalBones} bone)`);
+   342→  };
+   343→
+   344→  const handlePlayAnimation = () => {
+   345→    setIsPlaying(!isPlaying);
+   346→    if (!isPlaying) {
+   347→      toast.info('Animasyon oynatılıyor...');
+   348→    }
+   349→  };
+   350→
+   351→  const handleExport = (format: string) => {
+   352→    toast.success(`Sahne ${format.toUpperCase()} olarak export edildi (simülasyon)`);
+   353→  };
+   354→
+   355→  // Stats
+   356→  const stats = {
+   357→    polygons: 12453,
+   358→    vertices: 6234,
+   359→    drawCalls: 12,
+   360→    textures: 8,
+   361→    memory: 45.2,
+   362→    fps: 60,
+   363→  };
+   364→
+   365→  return (
+   366→    <div className="flex-1 flex overflow-hidden bg-background">
+   367→      {/* Left Sidebar — Scene Tree / Rig / Animate */}
+   368→      <aside className="w-64 border-r border-border flex flex-col bg-[#252526] flex-shrink-0">
+   369→        {/* Header */}
+   370→        <div className="p-2 border-b border-border flex items-center gap-2">
+   371→          <div className="w-6 h-6 rounded bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-[10px] font-bold">
+   372→            N3D
+   373→          </div>
+   374→          <span className="text-xs font-bold">NEXUS 3D Studio</span>
+   375→          <Badge variant="outline" className="text-[9px] ml-auto">AAA</Badge>
+   376→        </div>
+   377→
+   378→        {/* Tabs */}
+   379→        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="flex-1 flex flex-col">
+   380→          <TabsList className="grid grid-cols-8 rounded-none border-b border-border bg-transparent h-8">
+   381→            <TabsTrigger value="scene" className="text-[9px] rounded-none" title="Sahne">
+   382→              <Layers size={10} />
+   383→            </TabsTrigger>
+   384→            <TabsTrigger value="rig" className="text-[9px] rounded-none" title="Rig">
+   385→              <BoneIcon size={10} />
+   386→            </TabsTrigger>
+   387→            <TabsTrigger value="animate" className="text-[9px] rounded-none" title="Animasyon">
+   388→              <Play size={10} />
+   389→            </TabsTrigger>
+   390→            <TabsTrigger value="material" className="text-[9px] rounded-none" title="Materyal">
+   391→              <Palette size={10} />
+   392→            </TabsTrigger>
+   393→            <TabsTrigger value="fx" className="text-[9px] rounded-none" title="FX (Partikül/Fizik)">
+   394→              <Zap size={10} />
+   395→            </TabsTrigger>
+   396→            <TabsTrigger value="render" className="text-[9px] rounded-none" title="Render">
+   397→              <Camera size={10} />
+   398→            </TabsTrigger>
+   399→            <TabsTrigger value="ai" className="text-[9px] rounded-none" title="AI (Rig/Anim)">
+   400→              <Sparkles size={10} />
+   401→            </TabsTrigger>
+   402→            <TabsTrigger value="library" className="text-[9px] rounded-none" title="Asset Library">
+   403→              <FileBox size={10} />
+   404→            </TabsTrigger>
+   405→          </TabsList>
+   406→
+   407→          {/* Scene Tab */}
+   408→          <TabsContent value="scene" className="flex-1 overflow-auto mt-0 p-2 space-y-1">
+   409→            <div className="text-[10px] text-muted-foreground uppercase mb-1">Sahne Hiyerarşisi</div>
+   410→            {sceneObjects.map((obj) => (
+   411→              <div
+   412→                key={obj.id}
+   413→                onClick={() => {
+   414→                  setSelectedObject(obj);
+   415→                  setObjectName(obj.name);
+   416→                  setPosition(obj.position);
+   417→                  setRotation(obj.rotation);
+   418→                  setScale(obj.scale);
+   419→                }}
+   420→                className={cn(
+   421→                  'flex items-center gap-1 px-2 py-1 rounded cursor-pointer text-xs hover:bg-white/5',
+   422→                  selectedObject?.id === obj.id && 'bg-blue-500/20'
+   423→                )}
+   424→              >
+   425→                {obj.type === 'mesh' && <Box size={12} className="text-blue-400" />}
+   426→                {obj.type === 'light' && <Lightbulb size={12} className="text-yellow-400" />}
+   427→                {obj.type === 'camera' && <Camera size={12} className="text-green-400" />}
+   428→                <span className="flex-1 truncate">{obj.name}</span>
+   429→                <button
+   430→                  onClick={(e) => e.stopPropagation()}
+   431→                  className="text-gray-500 hover:text-white"
+   432→                >
+   433→                  {obj.visible ? <Eye size={10} /> : <EyeOff size={10} />}
+   434→                </button>
+   435→              </div>
+   436→            ))}
+   437→
+   438→            {/* Imported files */}
+   439→            {importedFiles.length > 0 && (
+   440→              <>
+   441→                <div className="text-[10px] text-muted-foreground uppercase mt-3 mb-1">Yüklenen Modeller</div>
+   442→                {importedFiles.map((f, i) => (
+   443→                  <div key={i} className="flex items-center gap-1 px-2 py-1 rounded text-xs hover:bg-white/5">
+   444→                    <FileBox size={12} className="text-purple-400" />
+   445→                    <span className="flex-1 truncate">{f.name}</span>
+   446→                    <Badge variant="outline" className="text-[8px] uppercase">{f.format}</Badge>
+   447→                  </div>
+   448→                ))}
+   449→              </>
+   450→            )}
+   451→
+   452→            {/* Import button */}
+   453→            <Button
+   454→              variant="outline"
+   455→              size="sm"
+   456→              className="w-full mt-3 h-7 text-xs"
+   457→              onClick={() => fileInputRef.current?.click()}
+   458→            >
+   459→              <Upload size={12} className="mr-1" /> Model İçe Aktar
+   460→            </Button>
+   461→            <input
+   462→              ref={fileInputRef}
+   463→              type="file"
+   464→              multiple
+   465→              accept=".glb,.gltf,.fbx,.obj,.stl,.usd,.blend,.abc"
+   466→              onChange={handleImportFile}
+   467→              className="hidden"
+   468→            />
+   469→          </TabsContent>
+   470→
+   471→          {/* Rig Tab */}
+   472→          <TabsContent value="rig" className="flex-1 overflow-auto mt-0 p-2 space-y-2">
+   473→            <div className="text-[10px] text-muted-foreground uppercase mb-1">Rig Şablonları</div>
+   474→            <Button
+   475→              variant="outline"
+   476→              size="sm"
+   477→              className="w-full h-7 text-xs justify-start"
+   478→              onClick={() => handleAddSkeleton('humanoid')}
+   479→            >
+   480→              <BoneIcon size={12} className="mr-2 text-blue-400" /> İnsan (Humanoid)
+   481→              <Badge variant="secondary" className="ml-auto text-[8px]">21 bone</Badge>
+   482→            </Button>
+   483→            <Button
+   484→              variant="outline"
+   485→              size="sm"
+   486→              className="w-full h-7 text-xs justify-start"
+   487→              onClick={() => handleAddSkeleton('quadruped')}
+   488→            >
+   489→              <BoneIcon size={12} className="mr-2 text-purple-400" /> Dört Ayak (Quadruped)
+   490→              <Badge variant="secondary" className="ml-auto text-[8px]">17 bone</Badge>
+   491→            </Button>
+   492→
+   493→            {skeleton && (
+   494→              <>
+   495→                <div className="text-[10px] text-muted-foreground uppercase mt-3 mb-1">
+   496→                  Bone Hiyerarşisi ({skeleton.totalBones})
+   497→                </div>
+   498→                <div className="space-y-0.5 max-h-64 overflow-auto">
+   499→                  <BoneTree
+   500→                    bones={skeleton.bones}
+   501→                    parentId={null}
+   502→                    depth={0}
+   503→                    selectedBone={selectedBone}
+   504→                    onSelect={setSelectedBone}
+   505→                  />
+   506→                </div>
+   507→              </>
+   508→            )}
+   509→          </TabsContent>
+   510→
+   511→          {/* Animate Tab */}
+   512→          <TabsContent value="animate" className="flex-1 overflow-auto mt-0 p-2 space-y-2">
+   513→            <div className="text-[10px] text-muted-foreground uppercase mb-1">Animasyon Klipleri</div>
+   514→            {ANIMATION_PRESETS.map((anim) => (
+   515→              <div
+   516→                key={anim.name}
+   517→                className="flex items-center gap-2 px-2 py-1.5 rounded bg-white/5 hover:bg-white/10 cursor-pointer text-xs"
+   518→                onClick={() => {
+   519→                  setAnimationDuration(anim.duration);
+   520→                  toast.info(`${anim.name} yüklendi (${anim.duration}s)`);
+   521→                }}
+   522→              >
+   523→                <Play size={10} className="text-green-400" />
+   524→                <div className="flex-1 min-w-0">
+   525→                  <div className="font-medium">{anim.name}</div>
+   526→                  <div className="text-[9px] text-muted-foreground truncate">{anim.description}</div>
+   527→                </div>
+   528→                <Badge variant="outline" className="text-[8px]">{anim.duration}s</Badge>
+   529→              </div>
+   530→            ))}
+   531→
+   532→            <div className="text-[10px] text-muted-foreground uppercase mt-3 mb-1">FPS</div>
+   533→            <Select value={String(fps)} onValueChange={(v) => setFps(parseInt(v))}>
+   534→              <SelectTrigger className="h-7 text-xs">
+   535→                <SelectValue />
+   536→              </SelectTrigger>
+   537→              <SelectContent>
+   538→                {[24, 30, 60, 120].map((f) => (
+   539→                  <SelectItem key={f} value={String(f)} className="text-xs">{f} FPS</SelectItem>
+   540→                ))}
+   541→              </SelectContent>
+   542→            </Select>
+   543→          </TabsContent>
+   544→
+   545→          {/* Material Tab */}
+   546→          <TabsContent value="material" className="flex-1 overflow-auto mt-0 p-2 space-y-2">
+   547→            <div className="text-[10px] text-muted-foreground uppercase mb-1">Materyal Kütüphanesi</div>
+   548→            {MATERIAL_PRESETS.map((mat) => (
+   549→              <div
+   550→                key={mat.id}
+   551→                onClick={() => {
+   552→                  setSelectedMaterial(mat);
+   553→                  toast.info(`Materyal: ${mat.name}`);
+   554→                }}
+   555→                className={cn(
+   556→                  'flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-xs',
+   557→                  selectedMaterial.id === mat.id ? 'bg-blue-500/20' : 'bg-white/5 hover:bg-white/10'
+   558→                )}
+   559→              >
+   560→                <div
+   561→                  className="w-6 h-6 rounded border border-border"
+   562→                  style={{ background: mat.baseColor }}
+   563→                />
+   564→                <div className="flex-1 min-w-0">
+   565→                  <div className="font-medium truncate">{mat.name}</div>
+   566→                  <div className="text-[9px] text-muted-foreground">{mat.type}</div>
+   567→                </div>
+   568→              </div>
+   569→            ))}
+   570→
+   571→            {/* PBR controls */}
+   572→            <div className="space-y-2 mt-3">
+   573→              <div>
+   574→                <Label className="text-[10px]">Metallic: {selectedMaterial.metallic.toFixed(2)}</Label>
+   575→                <Slider
+   576→                  value={[selectedMaterial.metallic * 100]}
+   577→                  onValueChange={(v) => setSelectedMaterial({ ...selectedMaterial, metallic: v[0] / 100 })}
+   578→                  max={100}
+   579→                  className="h-1"
+   580→                />
+   581→              </div>
+   582→              <div>
+   583→                <Label className="text-[10px]">Roughness: {selectedMaterial.roughness.toFixed(2)}</Label>
+   584→                <Slider
+   585→                  value={[selectedMaterial.roughness * 100]}
+   586→                  onValueChange={(v) => setSelectedMaterial({ ...selectedMaterial, roughness: v[0] / 100 })}
+   587→                  max={100}
+   588→                  className="h-1"
+   589→                />
+   590→              </div>
+   591→            </div>
+   592→          </TabsContent>
+   593→
+   594→          {/* Render Tab */}
+   595→          <TabsContent value="render" className="flex-1 overflow-auto mt-0 p-2 space-y-2">
+   596→            <div className="text-[10px] text-muted-foreground uppercase mb-1">Render Ayarları</div>
+   597→            <div className="space-y-2">
+   598→              <div>
+   599→                <Label className="text-[10px]">Çözünürlük</Label>
+   600→                <Select defaultValue="1080p">
+   601→                  <SelectTrigger className="h-7 text-xs">
+   602→                    <SelectValue />
+   603→                  </SelectTrigger>
+   604→                  <SelectContent>
+   605→                    <SelectItem value="720p" className="text-xs">1280×720</SelectItem>
+   606→                    <SelectItem value="1080p" className="text-xs">1920×1080</SelectItem>
+   607→                    <SelectItem value="1440p" className="text-xs">2560×1440</SelectItem>
+   608→                    <SelectItem value="4k" className="text-xs">3840×2160 (4K)</SelectItem>
+   609→                    <SelectItem value="8k" className="text-xs">7680×4320 (8K)</SelectItem>
+   610→                  </SelectContent>
+   611→                </Select>
+   612→              </div>
+   613→              <div>
+   614→                <Label className="text-[10px]">Örnek Sayısı (AA)</Label>
+   615→                <Select defaultValue="64">
+   616→                  <SelectTrigger className="h-7 text-xs">
+   617→                    <SelectValue />
+   618→                  </SelectTrigger>
+   619→                  <SelectContent>
+   620→                    {[16, 32, 64, 128, 256, 512].map((s) => (
+   621→                      <SelectItem key={s} value={String(s)} className="text-xs">{s} samples</SelectItem>
+   622→                    ))}
+   623→                  </SelectContent>
+   624→                </Select>
+   625→              </div>
+   626→              <Button className="w-full h-7 text-xs" onClick={() => toast.info('Render başlatıldı (simülasyon)')}>
+   627→                <Camera size={12} className="mr-1" /> Render Başlat
+   628→              </Button>
+   629→            </div>
+   630→
+   631→            <div className="text-[10px] text-muted-foreground uppercase mt-3 mb-1">LOD Seviyeleri</div>
+   632→            {LOD_PRESETS.map((lod) => (
+   633→              <div key={lod.name} className="text-[10px] p-1.5 bg-white/5 rounded">
+   634→                <div className="font-medium">{lod.name}</div>
+   635→                <div className="text-muted-foreground">{lod.description}</div>
+   636→              </div>
+   637→            ))}
+   638→
+   639→            {/* Sprint 34: Render Farm */}
+   640→            <div className="text-[10px] text-muted-foreground uppercase mt-3 mb-1">Render Farm (Sprint 34)</div>
+   641→            <div className="space-y-1">
+   642→              {[1, 2, 3].map((i) => (
+   643→                <div key={i} className="flex items-center gap-2 p-1.5 bg-white/5 rounded text-[10px]">
+   644→                  <div className={`w-2 h-2 rounded-full ${i === 1 ? 'bg-green-400' : i === 2 ? 'bg-yellow-400 animate-pulse' : 'bg-gray-500'}`} />
+   645→                  <span className="flex-1">Node-{i}: {i === 1 ? 'Ready' : i === 2 ? `Rendering ${30 + i * 10}%` : 'Queued'}</span>
+   646→                  {i === 1 && <Badge variant="outline" className="text-[8px]">CPU 0%</Badge>}
+   647→                  {i === 2 && <Badge variant="outline" className="text-[8px] text-yellow-400">CPU 87%</Badge>}
+   648→                  {i === 3 && <Badge variant="outline" className="text-[8px]">Idle</Badge>}
+   649→                </div>
+   650→              ))}
+   651→              <Button size="sm" variant="outline" className="w-full h-6 text-[10px]" onClick={() => toast.info('Render farm\'a job eklendi')}>
+   652→                <Plus size={10} className="mr-1" /> Job Ekle
+   653→              </Button>
+   654→            </div>
+   655→
+   656→            {/* Sprint 39: Procedural Generation */}
+   657→            <div className="text-[10px] text-muted-foreground uppercase mt-3 mb-1">Procedural Generation (Sprint 39)</div>
+   658→            <div className="grid grid-cols-2 gap-1">
+   659→              {[
+   660→                { name: 'Terrain', icon: '⛰️' },
+   661→                { name: 'City', icon: '🏙️' },
+   662→                { name: 'Forest', icon: '🌲' },
+   663→                { name: 'Cave', icon: '🕳️' },
+   664→                { name: 'Building', icon: '🏢' },
+   665→                { name: 'Space', icon: '🚀' },
+   666→              ].map((p) => (
+   667→                <button
+   668→                  key={p.name}
+   669→                  onClick={() => {
+   670→                    const rng = p.name === 'City' ? generateCity({ type: 'city' as any, seed: 42, size: 50, density: 0.5, variation: 1, params: {} }).length : 0;
+   671→                    toast.success(`${p.name} üretildi (${rng || 'grid'} öğe)`);
+   672→                  }}
+   673→                  className="flex flex-col items-center gap-0.5 p-1.5 bg-white/5 rounded hover:bg-white/10 text-[10px]"
+   674→                >
+   675→                  <span className="text-base">{p.icon}</span>
+   676→                  <span>{p.name}</span>
+   677→                </button>
+   678→              ))}
+   679→            </div>
+   680→            <div className="mt-2">
+   681→              <Label className="text-[10px]">Seed</Label>
+   682→              <Input type="number" defaultValue={42} className="h-6 text-xs" />
+   683→            </div>
+   684→          </TabsContent>
+   685→
+   686→          {/* FX Tab — Sprint 27-29: Particles & Physics */}
+   687→          <TabsContent value="fx" className="flex-1 overflow-auto mt-0 p-2 space-y-2">
+   688→            <div className="text-[10px] text-muted-foreground uppercase mb-1">Partikül Sistemleri (Sprint 27)</div>
+   689→            {PARTICLE_PRESETS.map((p) => (
+   690→              <div
+   691→                key={p.id}
+   692→                onClick={() => toast.info(`${p.name} eklendi (${p.maxParticles} partikül)`)}
+   693→                className="flex items-center gap-2 p-1.5 bg-white/5 rounded hover:bg-white/10 cursor-pointer text-[10px]"
+   694→              >
+   695→                <div
+   696→                  className="w-6 h-6 rounded flex items-center justify-center text-xs"
+   697→                  style={{ background: `${p.color}30`, color: p.color }}
+   698→                >
+   699→                  {p.type === 'fire' ? '🔥' : p.type === 'smoke' ? '💨' : p.type === 'water' ? '💧' : p.type === 'spark' ? '✨' : p.type === 'snow' ? '❄️' : p.type === 'rain' ? '🌧️' : p.type === 'explosion' ? '💥' : p.type === 'magic' ? '🔮' : '🌫️'}
+   700→                </div>
+   701→                <div className="flex-1 min-w-0">
+   702→                  <div className="font-medium">{p.name}</div>
+   703→                  <div className="text-[9px] text-muted-foreground">{p.maxParticles} partikül · {p.emissionRate}/sn</div>
+   704→                </div>
+   705→              </div>
+   706→            ))}
+   707→
+   708→            {/* Particle parameters */}
+   709→            <div className="space-y-2 mt-2">
+   710→              <div>
+   711→                <Label className="text-[10px]">Emission Rate</Label>
+   712→                <Slider defaultValue={[50]} max={500} className="h-1" />
+   713→              </div>
+   714→              <div>
+   715→                <Label className="text-[10px]">Lifetime (s)</Label>
+   716→                <Slider defaultValue={[20]} max={100} className="h-1" />
+   717→              </div>
+   718→              <div>
+   719→                <Label className="text-[10px]">Gravity</Label>
+   720→                <Slider defaultValue={[50]} max={200} min={-100} className="h-1" />
+   721→              </div>
+   722→              <div>
+   723→                <Label className="text-[10px]">Turbulence</Label>
+   724→                <Slider defaultValue={[50]} max={100} className="h-1" />
+   725→              </div>
+   726→            </div>
+   727→
+   728→            {/* Sprint 28: Physics */}
+   729→            <div className="text-[10px] text-muted-foreground uppercase mt-3 mb-1">Physics Bodies (Sprint 28)</div>
+   730→            {PHYSICS_PRESETS.map((phy) => (
+   731→              <div
+   732→                key={phy.id}
+   733→                onClick={() => toast.info(`${phy.name} eklendi (${phy.type})`)}
+   734→                className="flex items-center gap-2 p-1.5 bg-white/5 rounded hover:bg-white/10 cursor-pointer text-[10px]"
+   735→              >
+   736→                <div className="w-6 h-6 rounded bg-blue-500/20 flex items-center justify-center">
+   737→                  <Box size={10} className="text-blue-400" />
+   738→                </div>
+   739→                <div className="flex-1 min-w-0">
+   740→                  <div className="font-medium">{phy.name}</div>
+   741→                  <div className="text-[9px] text-muted-foreground">{phy.shape} · {phy.mass}kg · friction {phy.friction}</div>
+   742→                </div>
+   743→                <Badge variant="outline" className="text-[8px] uppercase">{phy.type}</Badge>
+   744→              </div>
+   745→            ))}
+   746→
+   747→            {/* Physics simulation controls */}
+   748→            <div className="space-y-1 mt-2">
+   749→              <Button size="sm" className="w-full h-6 text-[10px]" onClick={() => toast.info('Physics simülasyonu başlatıldı')}>
+   750→                <Play size={10} className="mr-1" /> Simülasyon Başlat
+   751→              </Button>
+   752→              <div className="grid grid-cols-2 gap-1">
+   753→                <Button size="sm" variant="outline" className="h-6 text-[10px]">Step</Button>
+   754→                <Button size="sm" variant="outline" className="h-6 text-[10px]">Reset</Button>
+   755→              </div>
+   756→            </div>
+   757→
+   758→            {/* Sprint 29: Crowd Simulation */}
+   759→            <div className="text-[10px] text-muted-foreground uppercase mt-3 mb-1">Crowd Simulation (Sprint 29)</div>
+   760→            <div className="space-y-1">
+   761→              <div>
+   762→                <Label className="text-[10px]">Agent Count</Label>
+   763→                <Input type="number" defaultValue={100} className="h-6 text-xs" />
+   764→              </div>
+   765→              <div>
+   766→                <Label className="text-[10px]">Behavior</Label>
+   767→                <Select defaultValue="flock">
+   768→                  <SelectTrigger className="h-7 text-xs">
+   769→                    <SelectValue />
+   770→                  </SelectTrigger>
+   771→                  <SelectContent>
+   772→                    <SelectItem value="flock" className="text-xs">Flocking (Boids)</SelectItem>
+   773→                    <SelectItem value="wander" className="text-xs">Wander</SelectItem>
+   774→                    <SelectItem value="seek" className="text-xs">Seek Target</SelectItem>
+   775→                    <SelectItem value="evade" className="text-xs">Evade</SelectItem>
+   776→                    <SelectItem value="path" className="text-xs">Path Following</SelectItem>
+   777→                  </SelectContent>
+   778→                </Select>
+   779→              </div>
+   780→              <Button size="sm" variant="outline" className="w-full h-6 text-[10px]" onClick={() => toast.info('Crowd simülasyonu başlatıldı')}>
+   781→                <Users size={10} className="mr-1" /> Crowd Başlat
+   782→              </Button>
+   783→            </div>
+   784→          </TabsContent>
+   785→
+   786→          {/* AI Tab — Sprint 37-38: AI Rigging & Animation */}
+   787→          <TabsContent value="ai" className="flex-1 overflow-auto mt-0 p-2 space-y-2">
+   788→            <div className="text-[10px] text-muted-foreground uppercase mb-1">AI Rigging (Sprint 37)</div>
+   789→            <div className="p-2 bg-purple-500/10 border border-purple-500/20 rounded text-[10px]">
+   790→              <div className="flex items-center gap-1 mb-1">
+   791→                <Sparkles size={10} className="text-purple-400" />
+   792→                <span className="font-semibold text-purple-400">AI-Powered Auto-Rigging</span>
+   793→              </div>
+   794→              <p className="text-muted-foreground">Mesh'i analiz et, otomatik skeleton oluştur, weight paint uygula.</p>
+   795→            </div>
+   796→            <div>
+   797→              <Label className="text-[10px]">Mesh Tipi</Label>
+   798→              <Select defaultValue="auto">
+   799→                <SelectTrigger className="h-7 text-xs">
+   800→                  <SelectValue />
+   801→                </SelectTrigger>
+   802→                <SelectContent>
+   803→                  <SelectItem value="auto" className="text-xs">Otomatik Tespit</SelectItem>
+   804→                  <SelectItem value="humanoid" className="text-xs">İnsan (Humanoid)</SelectItem>
+   805→                  <SelectItem value="quadruped" className="text-xs">Dört Ayak (Quadruped)</SelectItem>
+   806→                  <SelectItem value="bird" className="text-xs">Kuş (Bird)</SelectItem>
+   807→                </SelectContent>
+   808→              </Select>
+   809→            </div>
+   810→            <Button
+   811→              size="sm"
+   812→              className="w-full h-7 text-xs"
+   813→              onClick={() => {
+   814→                const result = aiDetectSkeleton(15000, 'auto');
+   815→                toast.success(`AI rigging: ${result.detectedBones.length} bone tespit edildi (güven: %${(result.confidence * 100).toFixed(0)})`);
+   816→                if (result.detectedBones.length > 15) {
+   817→                  setSkeleton(createHumanoidSkeleton());
+   818→                } else if (result.detectedBones.length > 10) {
+   819→                  setSkeleton(createBirdSkeleton());
+   820→                } else {
+   821→                  setSkeleton(createQuadrupedSkeleton());
+   822→                }
+   823→              }}
+   824→            >
+   825→              <Sparkles size={12} className="mr-1" /> AI ile Rig'le
+   826→            </Button>
+   827→
+   828→            {/* AI Animation */}
+   829→            <div className="text-[10px] text-muted-foreground uppercase mt-3 mb-1">AI Animation (Sprint 38)</div>
+   830→            <div className="p-2 bg-purple-500/10 border border-purple-500/20 rounded text-[10px]">
+   831→              <div className="flex items-center gap-1 mb-1">
+   832→                <Sparkles size={10} className="text-purple-400" />
+   833→                <span className="font-semibold text-purple-400">AI-Powered Animation Generation</span>
+   834→              </div>
+   835→              <p className="text-muted-foreground">Doğal dil ile animasyon üret: "yürü", "zıpla", "el salla"</p>
+   836→            </div>
+   837→            <div>
+   838→              <Label className="text-[10px]">Animasyon Açıklaması</Label>
+   839→              <Input
+   840→                placeholder="örn: karakter yürüyor"
+   841→                className="h-7 text-xs"
+   842→                onKeyDown={(e) => {
+   843→                  if (e.key === 'Enter') {
+   844→                    const desc = (e.target as HTMLInputElement).value;
+   845→                    if (desc && skeleton) {
+   846→                      const clip = aiGenerateAnimation(desc, skeleton, 2.0);
+   847→                      setAnimationDuration(clip.duration);
+   848→                      toast.success(`AI animasyon üretildi: ${clip.name} (${clip.keyframes.length} keyframe)`);
+   849→                    } else if (!skeleton) {
+   850→                      toast.error('Önce bir skeleton ekleyin');
+   851→                    }
+   852→                  }
+   853→                }}
+   854→              />
+   855→            </div>
+   856→            <div className="grid grid-cols-2 gap-1">
+   857→              {['Walk', 'Run', 'Jump', 'Wave', 'Dance', 'Attack'].map((a) => (
+   858→                <Button
+   859→                  key={a}
+   860→                  size="sm"
+   861→                  variant="outline"
+   862→                  className="h-6 text-[10px]"
+   863→                  onClick={() => {
+   864→                    if (skeleton) {
+   865→                      const clip = aiGenerateAnimation(a.toLowerCase(), skeleton, 2.0);
+   866→                      setAnimationDuration(clip.duration);
+   867→                      toast.success(`AI: ${a} animasyonu üretildi`);
+   868→                    } else {
+   869→                      toast.error('Önce bir skeleton ekleyin');
+   870→                    }
+   871→                  }}
+   872→                >
+   873→                  {a}
+   874→                </Button>
+   875→              ))}
+   876→            </div>
+   877→
+   878→            {/* AI Suggestions */}
+   879→            <div className="text-[10px] text-muted-foreground uppercase mt-3 mb-1">AI Önerileri</div>
+   880→            <div className="space-y-1">
+   881→              {[
+   882→                'Karakter yavaşça nefes alıyor (idle)',
+   883→                'Karakter koşarak ilerliyor',
+   884→                'Karakter oturuyor',
+   885→                'Karakter dans ediyor',
+   886→                'Karakter saldırıyor',
+   887→              ].map((s, i) => (
+   888→                <button
+   889→                  key={i}
+   890→                  onClick={() => {
+   891→                    if (skeleton) {
+   892→                      const clip = aiGenerateAnimation(s, skeleton, 2.0);
+   893→                      toast.success(`AI öneri uygulandı: ${s}`);
+   894→                    } else {
+   895→                      toast.error('Önce bir skeleton ekleyin');
+   896→                    }
+   897→                  }}
+   898→                  className="w-full text-left p-1.5 bg-white/5 rounded hover:bg-white/10 text-[10px] flex items-center gap-1"
+   899→                >
+   900→                  <Sparkles size={8} className="text-purple-400 flex-shrink-0" />
+   901→                  <span className="truncate">{s}</span>
+   902→                </button>
+   903→              ))}
+   904→            </div>
+   905→          </TabsContent>
+   906→
+   907→          {/* Library Tab — Sprint 33: Asset Library */}
+   908→          <TabsContent value="library" className="flex-1 overflow-auto mt-0 p-2 space-y-2">
+   909→            <div className="text-[10px] text-muted-foreground uppercase mb-1">Asset Library (Sprint 33)</div>
+   910→            <div className="relative mb-2">
+   911→              <Input placeholder="Asset ara..." className="h-7 text-xs pl-7" />
+   912→              <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" size={12} />
+   913→            </div>
+   914→            <div className="flex flex-wrap gap-1 mb-2">
+   915→              {['Tümü', 'Karakter', 'Environment', 'Prop', 'Materyal', 'Animasyon', 'HDRI'].map((c, i) => (
+   916→                <button
+   917→                  key={c}
+   918→                  className={`text-[9px] px-2 py-0.5 rounded ${i === 0 ? 'bg-blue-500 text-white' : 'bg-white/5 text-gray-400'}`}
+   919→                >
+   920→                  {c}
+   921→                </button>
+   922→              ))}
+   923→            </div>
+   924→            <div className="space-y-1">
+   925→              {ASSET_LIBRARY.map((asset) => (
+   926→                <div
+   927→                  key={asset.id}
+   928→                  onClick={() => toast.success(`${asset.name} sahneye eklendi (${formatNumber(asset.polygonCount)} poly)`)}
+   929→                  className="flex items-center gap-2 p-1.5 bg-white/5 rounded hover:bg-white/10 cursor-pointer"
+   930→                >
+   931→                  <div className="w-8 h-8 rounded bg-white/5 flex items-center justify-center text-base flex-shrink-0">
+   932→                    {asset.thumbnail}
+   933→                  </div>
+   934→                  <div className="flex-1 min-w-0">
+   935→                    <div className="text-[10px] font-medium truncate">{asset.name}</div>
+   936→                    <div className="text-[9px] text-muted-foreground flex items-center gap-1">
+   937→                      <span>{formatFileSize(asset.fileSize)}</span>
+   938→                      <span>·</span>
+   939→                      <span>{formatNumber(asset.polygonCount)} poly</span>
+   940→                      <span>·</span>
+   941→                      <span className="text-yellow-400">★{asset.rating}</span>
+   942→                    </div>
+   943→                  </div>
+   944→                  <Badge variant="outline" className="text-[8px] uppercase flex-shrink-0">{asset.license}</Badge>
+   945→                </div>
+   946→              ))}
+   947→            </div>
+   948→
+   949→            {/* Sprint 31: Collaboration */}
+   950→            <div className="text-[10px] text-muted-foreground uppercase mt-3 mb-1">Canlı İşbirliği (Sprint 31)</div>
+   951→            <div className="space-y-1">
+   952→              {[
+   953→                { name: 'Ahmet Y.', color: '#ef4444', active: true, cursor: 'Editor' },
+   954→                { name: 'Ayşe K.', color: '#22c55e', active: true, cursor: 'Viewport' },
+   955→                { name: 'Mehmet D.', color: '#3b82f6', active: false, cursor: null },
+   956→              ].map((u, i) => (
+   957→                <div key={i} className="flex items-center gap-2 p-1.5 bg-white/5 rounded text-[10px]">
+   958→                  <div
+   959→                    className={`w-2 h-2 rounded-full ${u.active ? 'animate-pulse' : ''}`}
+   960→                    style={{ background: u.color }}
+   961→                  />
+   962→                  <span className="flex-1 truncate">{u.name}</span>
+   963→                  {u.active && <Badge variant="outline" className="text-[8px] text-green-400">{u.cursor}</Badge>}
+   964→                  {!u.active && <Badge variant="outline" className="text-[8px]">Offline</Badge>}
+   965→                </div>
+   966→              ))}
+   967→              <Button size="sm" variant="outline" className="w-full h-6 text-[10px]" onClick={() => toast.info('Davet linki kopyalandı')}>
+   968→                <Users size={10} className="mr-1" /> Kullanıcı Davet Et
+   969→              </Button>
+   970→            </div>
+   971→
+   972→            {/* Sprint 36: Plugin System */}
+   973→            <div className="text-[10px] text-muted-foreground uppercase mt-3 mb-1">Plugin Sistemi (Sprint 36)</div>
+   974→            <div className="space-y-1">
+   975→              {[
+   976→                { name: 'Substance Painter Bridge', enabled: true },
+   977→                { name: 'ZBrush Connector', enabled: false },
+   978→                { name: 'Houdini Engine', enabled: true },
+   979→                { name: 'Marvelous Designer', enabled: false },
+   980→                { name: 'SpeedTree', enabled: false },
+   981→              ].map((p, i) => (
+   982→                <div key={i} className="flex items-center gap-2 p-1.5 bg-white/5 rounded text-[10px]">
+   983→                  <div className={`w-2 h-2 rounded-full ${p.enabled ? 'bg-green-400' : 'bg-gray-500'}`} />
+   984→                  <span className="flex-1 truncate">{p.name}</span>
+   985→                  <button
+   986→                    className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 hover:bg-white/20"
+   987→                    onClick={() => toast.info(`${p.name}: ${p.enabled ? 'Devre dışı' : 'Etkin'}`)}
+   988→                  >
+   989→                    {p.enabled ? 'ON' : 'OFF'}
+   990→                  </button>
+   991→                </div>
+   992→              ))}
+   993→            </div>
+   994→
+   995→            {/* Sprint 40: Cloud Rendering */}
+   996→            <div className="text-[10px] text-muted-foreground uppercase mt-3 mb-1">Cloud Rendering (Sprint 40)</div>
+   997→            <div className="space-y-1">
+   998→              <Select defaultValue="local">
+   999→                <SelectTrigger className="h-7 text-xs">
+  1000→                  <SelectValue />
+  1001→                </SelectTrigger>
+  1002→                <SelectContent>
+  1003→                  <SelectItem value="local" className="text-xs">Local (GPU)</SelectItem>
+  1004→                  <SelectItem value="aws" className="text-xs">AWS GPU (g4dn)</SelectItem>
+  1005→                  <SelectItem value="gcp" className="text-xs">Google Cloud (T4)</SelectItem>
+  1006→                  <SelectItem value="azure" className="text-xs">Azure (NCas)</SelectItem>
+  1007→                  <SelectItem value="renderfarm" className="text-xs">Render Farm (100 nodes)</SelectItem>
+  1008→                </SelectContent>
+  1009→              </Select>
+  1010→              <Button size="sm" className="w-full h-7 text-xs" onClick={() => toast.info('Cloud render başlatıldı')}>
+  1011→                <Cloud size={12} className="mr-1" /> Cloud'a Render Gönder
+  1012→              </Button>
+  1013→            </div>
+  1014→          </TabsContent>
+  1015→        </Tabs>
+  1016→      </aside>
+  1017→
+  1018→      {/* Main: 3D Viewport */}
+  1019→      <main className="flex-1 flex flex-col min-w-0">
+  1020→        {/* Toolbar */}
+  1021→        <div className="border-b border-border bg-[#1e1e1e] px-2 py-1 flex items-center gap-1">
+  1022→          {/* Transform mode */}
+  1023→          <div className="flex items-center gap-0.5 bg-[#252526] rounded p-0.5">
+  1024→            <Button
+  1025→              size="sm"
+  1026→              variant={transformMode === 'move' ? 'default' : 'ghost'}
+  1027→              className="h-6 w-6 p-0"
+  1028→              onClick={() => setTransformMode('move')}
+  1029→              title="Move (W)"
+  1030→            >
+  1031→              <Move size={12} />
+  1032→            </Button>
+  1033→            <Button
+  1034→              size="sm"
+  1035→              variant={transformMode === 'rotate' ? 'default' : 'ghost'}
+  1036→              className="h-6 w-6 p-0"
+  1037→              onClick={() => setTransformMode('rotate')}
+  1038→              title="Rotate (E)"
+  1039→            >
+  1040→              <RotateCw size={12} />
+  1041→            </Button>
+  1042→            <Button
+  1043→              size="sm"
+  1044→              variant={transformMode === 'scale' ? 'default' : 'ghost'}
+  1045→              className="h-6 w-6 p-0"
+  1046→              onClick={() => setTransformMode('scale')}
+  1047→              title="Scale (R)"
+  1048→            >
+  1049→              <Maximize size={12} />
+  1050→            </Button>
+  1051→          </div>
+  1052→
+  1053→          <div className="h-4 w-px bg-border" />
+  1054→
+  1055→          {/* View toggles */}
+  1056→          <Button
+  1057→            size="sm"
+  1058→            variant={showGrid ? 'default' : 'ghost'}
+  1059→            className="h-6 w-6 p-0"
+  1060→            onClick={() => setShowGrid(!showGrid)}
+  1061→            title="Grid"
+  1062→          >
+  1063→            <Grid3x3 size={12} />
+  1064→          </Button>
+  1065→          <Button
+  1066→            size="sm"
+  1067→            variant={showBones ? 'default' : 'ghost'}
+  1068→            className="h-6 w-6 p-0"
+  1069→            onClick={() => setShowBones(!showBones)}
+  1070→            title="Bones"
+  1071→          >
+  1072→            <BoneIcon size={12} />
+  1073→          </Button>
+  1074→          <Button
+  1075→            size="sm"
+  1076→            variant={showWireframe ? 'default' : 'ghost'}
+  1077→            className="h-6 w-6 p-0"
+  1078→            onClick={() => setShowWireframe(!showWireframe)}
+  1079→            title="Wireframe"
+  1080→          >
+  1081→            <Box size={12} />
+  1082→          </Button>
+  1083→          <Button
+  1084→            size="sm"
+  1085→            variant={showStats ? 'default' : 'ghost'}
+  1086→            className="h-6 w-6 p-0"
+  1087→            onClick={() => setShowStats(!showStats)}
+  1088→            title="Stats"
+  1089→          >
+  1090→            <Activity size={12} />
+  1091→          </Button>
+  1092→
+  1093→          <div className="h-4 w-px bg-border" />
+  1094→
+  1095→          {/* Object name */}
+  1096→          <span className="text-xs font-medium px-2">{objectName}</span>
+  1097→
+  1098→          <div className="ml-auto flex items-center gap-2">
+  1099→            {/* Stats badges */}
+  1100→            <Badge variant="outline" className="text-[9px] hidden md:flex">
+  1101→              <Cpu size={8} className="mr-1" /> {formatNumber(stats.polygons)} polys
+  1102→            </Badge>
+  1103→            <Badge variant="outline" className="text-[9px] hidden md:flex">
+  1104→              <HardDrive size={8} className="mr-1" /> {stats.memory} MB
+  1105→            </Badge>
+  1106→            <Badge variant="outline" className="text-[9px] hidden md:flex text-green-400">
+  1107→              <Zap size={8} className="mr-1" /> {stats.fps} FPS
+  1108→            </Badge>
+  1109→
+  1110→            {/* Export */}
+  1111→            <Select defaultValue="" onValueChange={handleExport}>
+  1112→              <SelectTrigger className="h-6 w-28 text-xs">
+  1113→                <SelectValue placeholder="Export" />
+  1114→              </SelectTrigger>
+  1115→              <SelectContent>
+  1116→                <SelectItem value="glb" className="text-xs">GLB (Binary glTF)</SelectItem>
+  1117→                <SelectItem value="gltf" className="text-xs">glTF 2.0</SelectItem>
+  1118→                <SelectItem value="fbx" className="text-xs">FBX</SelectItem>
+  1119→                <SelectItem value="obj" className="text-xs">OBJ</SelectItem>
+  1120→                <SelectItem value="stl" className="text-xs">STL (3D Print)</SelectItem>
+  1121→                <SelectItem value="usd" className="text-xs">USD</SelectItem>
+  1122→                <SelectItem value="blend" className="text-xs">BLEND</SelectItem>
+  1123→              </SelectContent>
+  1124→            </Select>
+  1125→          </div>
+  1126→        </div>
+  1127→
+  1128→        {/* 3D Viewport */}
+  1129→        <div className="flex-1 relative">
+  1130→          <Suspense
+  1131→            fallback={
+  1132→              <div className="flex items-center justify-center h-full text-muted-foreground">
+  1133→                <div className="text-center">
+  1134→                  <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+  1135→                  <p className="text-xs">3D viewport yükleniyor...</p>
+  1136→                </div>
+  1137→              </div>
+  1138→            }
+  1139→          >
+  1140→            <Viewport3D
+  1141→              showGrid={showGrid}
+  1142→              showStats={showStats}
+  1143→              skeleton={skeleton}
+  1144→              showBones={showBones}
+  1145→              showWireframe={showWireframe}
+  1146→            />
+  1147→          </Suspense>
+  1148→
+  1149→          {/* Viewport overlay — coordinates */}
+  1150→          <div className="absolute top-2 left-2 bg-black/60 backdrop-blur-sm rounded p-2 text-[10px] font-mono space-y-0.5">
+  1151→            <div className="text-red-400">X: {position[0].toFixed(2)}</div>
+  1152→            <div className="text-green-400">Y: {position[1].toFixed(2)}</div>
+  1153→            <div className="text-blue-400">Z: {position[2].toFixed(2)}</div>
+  1154→          </div>
+  1155→
+  1156→          {/* Skeleton info overlay */}
+  1157→          {skeleton && (
+  1158→            <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm rounded p-2 text-[10px] space-y-1">
+  1159→              <div className="font-semibold text-white">Skeleton: {skeleton.name}</div>
+  1160→              <div className="text-muted-foreground">Bones: {skeleton.totalBones}</div>
+  1161→              <div className="text-muted-foreground">Max Depth: {skeleton.maxDepth}</div>
+  1162→              {selectedBone && (
+  1163→                <div className="mt-1 pt-1 border-t border-white/10">
+  1164→                  <div className="text-yellow-400">Selected: {skeleton.bones.find((b) => b.id === selectedBone)?.name}</div>
+  1165→                </div>
+  1166→              )}
+  1167→            </div>
+  1168→          )}
+  1169→
+  1170→          {/* Format support badges */}
+  1171→          <div className="absolute bottom-2 left-2 flex flex-wrap gap-1 max-w-xs">
+  1172→            {Object.entries(FORMAT_INFO).map(([fmt, info]) => (
+  1173→              <Badge
+  1174→                key={fmt}
+  1175→                variant="outline"
+  1176→                className="text-[8px] py-0"
+  1177→                title={`${info.name} — supports: ${info.supports.join(', ')}`}
+  1178→              >
+  1179→                .{fmt}
+  1180→              </Badge>
+  1181→            ))}
+  1182→          </div>
+  1183→        </div>
+  1184→
+  1185→        {/* Animation Timeline */}
+  1186→        <div className="border-t border-border bg-[#1e1e1e] h-32 flex flex-col">
+  1187→          {/* Timeline toolbar */}
+  1188→          <div className="flex items-center gap-2 px-2 py-1 border-b border-border">
+  1189→            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setCurrentTime(0)}>
+  1190→              <SkipBack size={12} />
+  1191→            </Button>
+  1192→            <Button size="sm" variant={isPlaying ? 'default' : 'ghost'} className="h-6 w-6 p-0" onClick={handlePlayAnimation}>
+  1193→              {isPlaying ? <Pause size={12} /> : <Play size={12} />}
+  1194→            </Button>
+  1195→            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setCurrentTime(animationDuration)}>
+  1196→              <SkipForward size={12} />
+  1197→            </Button>
+  1198→
+  1199→            <div className="h-4 w-px bg-border" />
+  1200→
+  1201→            <span className="text-[10px] font-mono text-muted-foreground">
+  1202→              {currentTime.toFixed(2)}s / {animationDuration.toFixed(2)}s
+  1203→            </span>
+  1204→            <span className="text-[10px] text-muted-foreground">·</span>
+  1205→            <span className="text-[10px] font-mono text-muted-foreground">{fps} FPS</span>
+  1206→
+  1207→            <div className="ml-auto flex items-center gap-1">
+  1208→              {isPlaying ? (
+  1209→                <Badge variant="default" className="text-[9px] bg-green-500">
+  1210→                  <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse mr-1" />
+  1211→                  PLAYING
+  1212→                </Badge>
+  1213→              ) : (
+  1214→                <Badge variant="outline" className="text-[9px]">PAUSED</Badge>
+  1215→              )}
+  1216→            </div>
+  1217→          </div>
+  1218→
+  1219→          {/* Timeline track */}
+  1220→          <div className="flex-1 overflow-auto p-2">
+  1221→            {/* Time ruler */}
+  1222→            <div className="relative h-4 mb-1">
+  1223→              {Array.from({ length: Math.ceil(animationDuration * 2) + 1 }).map((_, i) => (
+  1224→                <div
+  1225→                  key={i}
+  1226→                  className="absolute top-0 h-full flex items-center"
+  1227→                  style={{ left: `${(i / (animationDuration * 2)) * 100}%` }}
+  1228→                >
+  1229→                  <div className="w-px h-2 bg-muted-foreground" />
+  1230→                  <span className="text-[8px] text-muted-foreground ml-0.5">{(i * 0.5).toFixed(1)}</span>
+  1231→                </div>
+  1232→              ))}
+  1233→            </div>
+  1234→
+  1235→            {/* Keyframe tracks */}
+  1236→            {skeleton ? (
+  1237→              <div className="space-y-1">
+  1238→                {skeleton.bones.slice(0, 8).map((bone) => (
+  1239→                  <div key={bone.id} className="flex items-center gap-1">
+  1240→                    <div className="w-20 text-[9px] text-muted-foreground truncate flex-shrink-0">
+  1241→                      {bone.name}
+  1242→                    </div>
+  1243→                    <div className="flex-1 h-4 bg-[#252526] rounded relative">
+  1244→                      {/* Keyframes */}
+  1245→                      {[0.1, 0.3, 0.5, 0.7, 0.9].map((t, i) => (
+  1246→                        <div
+  1247→                          key={i}
+  1248→                          className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-sm"
+  1249→                          style={{
+  1250→                            left: `${t * 100}%`,
+  1251→                            background: bone.color,
+  1252→                            transform: 'translate(-50%, -50%)',
+  1253→                          }}
+  1254→                        />
+  1255→                      ))}
+  1256→                      {/* Playhead */}
+  1257→                      <div
+  1258→                        className="absolute top-0 bottom-0 w-px bg-green-400"
+  1259→                        style={{ left: `${(currentTime / animationDuration) * 100}%` }}
+  1260→                      />
+  1261→                    </div>
+  1262→                  </div>
+  1263→                ))}
+  1264→              </div>
+  1265→            ) : (
+  1266→              <div className="text-center text-[10px] text-muted-foreground py-4">
+  1267→                Rig sekmesinden bir skeleton ekleyin
+  1268→              </div>
+  1269→            )}
+  1270→          </div>
+  1271→        </div>
+  1272→      </main>
+  1273→
+  1274→      {/* Right Sidebar — Properties */}
+  1275→      <aside className="w-56 border-l border-border bg-[#252526] flex-shrink-0 overflow-auto">
+  1276→        <div className="p-2 border-b border-border">
+  1277→          <span className="text-xs font-semibold">Properties</span>
+  1278→        </div>
+  1279→
+  1280→        {/* Transform */}
+  1281→        <div className="p-2 space-y-2">
+  1282→          <div className="text-[10px] text-muted-foreground uppercase">Transform</div>
+  1283→
+  1284→          <div>
+  1285→            <Label className="text-[10px] flex items-center gap-1">
+  1286→              <span className="text-red-400">X</span> Position
+  1287→            </Label>
+  1288→            <Input
+  1289→              type="number"
+  1290→              value={position[0].toFixed(2)}
+  1291→              onChange={(e) => setPosition([parseFloat(e.target.value) || 0, position[1], position[2]])}
+  1292→              className="h-6 text-xs"
+  1293→              step="0.1"
+  1294→            />
+  1295→          </div>
+  1296→          <div>
+  1297→            <Label className="text-[10px] flex items-center gap-1">
+  1298→              <span className="text-green-400">Y</span> Position
+  1299→            </Label>
+  1300→            <Input
+  1301→              type="number"
+  1302→              value={position[1].toFixed(2)}
+  1303→              onChange={(e) => setPosition([position[0], parseFloat(e.target.value) || 0, position[2]])}
+  1304→              className="h-6 text-xs"
+  1305→              step="0.1"
+  1306→            />
+  1307→          </div>
+  1308→          <div>
+  1309→            <Label className="text-[10px] flex items-center gap-1">
+  1310→              <span className="text-blue-400">Z</span> Position
+  1311→            </Label>
+  1312→            <Input
+  1313→              type="number"
+  1314→              value={position[2].toFixed(2)}
+  1315→              onChange={(e) => setPosition([position[0], position[1], parseFloat(e.target.value) || 0])}
+  1316→              className="h-6 text-xs"
+  1317→              step="0.1"
+  1318→            />
+  1319→          </div>
+  1320→
+  1321→          <div className="h-px bg-border my-2" />
+  1322→
+  1323→          <div>
+  1324→            <Label className="text-[10px]">Rotation (deg)</Label>
+  1325→            <div className="grid grid-cols-3 gap-1">
+  1326→              <Input
+  1327→                type="number"
+  1328→                value={(rotation[0] * 180 / Math.PI).toFixed(0)}
+  1329→                onChange={(e) => setRotation([parseFloat(e.target.value) * Math.PI / 180 || 0, rotation[1], rotation[2]])}
+  1330→                className="h-6 text-xs"
+  1331→              />
+  1332→              <Input
+  1333→                type="number"
+  1334→                value={(rotation[1] * 180 / Math.PI).toFixed(0)}
+  1335→                onChange={(e) => setRotation([rotation[0], parseFloat(e.target.value) * Math.PI / 180 || 0, rotation[2]])}
+  1336→                className="h-6 text-xs"
+  1337→              />
+  1338→              <Input
+  1339→                type="number"
+  1340→                value={(rotation[2] * 180 / Math.PI).toFixed(0)}
+  1341→                onChange={(e) => setRotation([rotation[0], rotation[1], parseFloat(e.target.value) * Math.PI / 180 || 0])}
+  1342→                className="h-6 text-xs"
+  1343→              />
+  1344→            </div>
+  1345→          </div>
+  1346→
+  1347→          <div>
+  1348→            <Label className="text-[10px]">Scale</Label>
+  1349→            <div className="grid grid-cols-3 gap-1">
+  1350→              <Input
+  1351→                type="number"
+  1352→                value={scale[0].toFixed(2)}
+  1353→                onChange={(e) => setScale([parseFloat(e.target.value) || 1, scale[1], scale[2]])}
+  1354→                className="h-6 text-xs"
+  1355→                step="0.1"
+  1356→              />
+  1357→              <Input
+  1358→                type="number"
+  1359→                value={scale[1].toFixed(2)}
+  1360→                onChange={(e) => setScale([scale[0], parseFloat(e.target.value) || 1, scale[2]])}
+  1361→                className="h-6 text-xs"
+  1362→                step="0.1"
+  1363→              />
+  1364→              <Input
+  1365→                type="number"
+  1366→                value={scale[2].toFixed(2)}
+  1367→                onChange={(e) => setScale([scale[0], scale[1], parseFloat(e.target.value) || 1])}
+  1368→                className="h-6 text-xs"
+  1369→                step="0.1"
+  1370→              />
+  1371→            </div>
+  1372→          </div>
+  1373→        </div>
+  1374→
+  1375→        {/* Material */}
+  1376→        <div className="p-2 border-t border-border space-y-2">
+  1377→          <div className="text-[10px] text-muted-foreground uppercase">Material</div>
+  1378→          <div className="flex items-center gap-2">
+  1379→            <div
+  1380→              className="w-8 h-8 rounded border border-border"
+  1381→              style={{ background: selectedMaterial.baseColor }}
+  1382→            />
+  1383→            <div className="flex-1 min-w-0">
+  1384→              <div className="text-xs font-medium truncate">{selectedMaterial.name}</div>
+  1385→              <div className="text-[9px] text-muted-foreground">{selectedMaterial.type}</div>
+  1386→            </div>
+  1387→          </div>
+  1388→
+  1389→          <div>
+  1390→            <Label className="text-[10px]">Base Color</Label>
+  1391→            <div className="flex gap-1">
+  1392→              <input
+  1393→                type="color"
+  1394→                value={selectedMaterial.baseColor}
+  1395→                onChange={(e) => setSelectedMaterial({ ...selectedMaterial, baseColor: e.target.value })}
+  1396→                className="w-8 h-6 rounded border border-border"
+  1397→              />
+  1398→              <Input
+  1399→                value={selectedMaterial.baseColor}
+  1400→                onChange={(e) => setSelectedMaterial({ ...selectedMaterial, baseColor: e.target.value })}
+  1401→                className="h-6 text-xs font-mono"
+  1402→              />
+  1403→            </div>
+  1404→          </div>
+  1405→
+  1406→          <div>
+  1407→            <Label className="text-[10px]">Metallic: {selectedMaterial.metallic.toFixed(2)}</Label>
+  1408→            <input
+  1409→              type="range"
+  1410→              min="0"
+  1411→              max="1"
+  1412→              step="0.01"
+  1413→              value={selectedMaterial.metallic}
+  1414→              onChange={(e) => setSelectedMaterial({ ...selectedMaterial, metallic: parseFloat(e.target.value) })}
+  1415→              className="w-full"
+  1416→            />
+  1417→          </div>
+  1418→
+  1419→          <div>
+  1420→            <Label className="text-[10px]">Roughness: {selectedMaterial.roughness.toFixed(2)}</Label>
+  1421→            <input
+  1422→              type="range"
+  1423→              min="0"
+  1424→              max="1"
+  1425→              step="0.01"
+  1426→              value={selectedMaterial.roughness}
+  1427→              onChange={(e) => setSelectedMaterial({ ...selectedMaterial, roughness: parseFloat(e.target.value) })}
+  1428→              className="w-full"
+  1429→            />
+  1430→          </div>
+  1431→        </div>
+  1432→
+  1433→        {/* Scene stats */}
+  1434→        <div className="p-2 border-t border-border space-y-1">
+  1435→          <div className="text-[10px] text-muted-foreground uppercase mb-1">Sahne İstatistikleri</div>
+  1436→          <div className="grid grid-cols-2 gap-1 text-[10px]">
+  1437→            <div className="bg-white/5 rounded p-1">
+  1438→              <div className="text-muted-foreground">Polygons</div>
+  1439→              <div className="font-mono">{formatNumber(stats.polygons)}</div>
+  1440→            </div>
+  1441→            <div className="bg-white/5 rounded p-1">
+  1442→              <div className="text-muted-foreground">Vertices</div>
+  1443→              <div className="font-mono">{formatNumber(stats.vertices)}</div>
+  1444→            </div>
+  1445→            <div className="bg-white/5 rounded p-1">
+  1446→              <div className="text-muted-foreground">Draw Calls</div>
+  1447→              <div className="font-mono">{stats.drawCalls}</div>
+  1448→            </div>
+  1449→            <div className="bg-white/5 rounded p-1">
+  1450→              <div className="text-muted-foreground">Textures</div>
+  1451→              <div className="font-mono">{stats.textures}</div>
+  1452→            </div>
+  1453→            <div className="bg-white/5 rounded p-1">
+  1454→              <div className="text-muted-foreground">Memory</div>
+  1455→              <div className="font-mono">{stats.memory} MB</div>
+  1456→            </div>
+  1457→            <div className="bg-white/5 rounded p-1">
+  1458→              <div className="text-muted-foreground">FPS</div>
+  1459→              <div className="font-mono text-green-400">{stats.fps}</div>
+  1460→            </div>
+  1461→          </div>
+  1462→
+  1463→          {/* Performance grade */}
+  1464→          <div className="mt-2 p-1.5 bg-green-500/10 border border-green-500/20 rounded text-center">
+  1465→            <div className="text-[10px] text-green-400 font-semibold">AAA Performance</div>
+  1466→            <div className="text-[9px] text-muted-foreground">Budget: 80% optimal</div>
+  1467→          </div>
+  1468→        </div>
+  1469→      </aside>
+  1470→    </div>
+  1471→  );
+  1472→}
+  1473→
+  1474→// ---------- Bone Tree Component ----------
+  1475→
+  1476→function BoneTree({
+  1477→  bones,
+  1478→  parentId,
+  1479→  depth,
+  1480→  selectedBone,
+  1481→  onSelect,
+  1482→}: {
+  1483→  bones: Bone[];
+  1484→  parentId: string | null;
+  1485→  depth: number;
+  1486→  selectedBone: string | null;
+  1487→  onSelect: (id: string) => void;
+  1488→}) {
+  1489→  const children = bones.filter((b) => b.parentId === parentId);
+  1490→  const [expanded, setExpanded] = useState(true);
+  1491→
+  1492→  return (
+  1493→    <>
+  1494→      {children.map((bone) => {
+  1495→        const hasChildren = bones.some((b) => b.parentId === bone.id);
+  1496→        const isSelected = selectedBone === bone.id;
+  1497→        return (
+  1498→          <div key={bone.id}>
+  1499→            <div
+  1500→              onClick={() => onSelect(bone.id)}
+  1501→              className={cn(
+  1502→                'flex items-center gap-1 px-1 py-0.5 rounded cursor-pointer text-[10px] hover:bg-white/5',
+  1503→                isSelected && 'bg-blue-500/20'
+  1504→              )}
+  1505→              style={{ paddingLeft: depth * 10 + 4 }}
+  1506→            >
+  1507→              {hasChildren ? (
+  1508→                <button
+  1509→                  onClick={(e) => {
+  1510→                    e.stopPropagation();
+  1511→                    setExpanded(!expanded);
+  1512→                  }}
+  1513→                  className="text-muted-foreground"
+  1514→                >
+  1515→                  {expanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />}
+  1516→                </button>
+  1517→              ) : (
+  1518→                <span className="w-2.5" />
+  1519→              )}
+  1520→              <div
+  1521→                className="w-2 h-2 rounded-full flex-shrink-0"
+  1522→                style={{ background: bone.color }}
+  1523→              />
+  1524→              <span className={cn('truncate', bone.isRoot && 'font-bold')}>{bone.name}</span>
+  1525→            </div>
+  1526→            {expanded && hasChildren && (
+  1527→              <BoneTree
+  1528→                bones={bones}
+  1529→                parentId={bone.id}
+  1530→                depth={depth + 1}
+  1531→                selectedBone={selectedBone}
+  1532→                onSelect={onSelect}
+  1533→              />
+  1534→            )}
+  1535→          </div>
+  1536→        );
+  1537→      })}
+  1538→    </>
+  1539→  );
+  1540→}
+  1541→

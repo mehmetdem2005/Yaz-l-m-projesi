@@ -1,0 +1,46 @@
+{
+  "name": "DeepSeek App Studio",
+  "short_name": "DS Studio",
+  "description": "Kurumsal standartlarda AI kod üretim stüdyosu",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1e1e1e",
+  "theme_color": "#007acc",
+  "categories": ["developer", "productivity", "utilities"],
+  "lang": "tr",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/?view=dashboard",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Editör",
+      "url": "/?view=editor",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Agent Tree",
+      "url": "/?view=agent-tree",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}

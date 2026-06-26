@@ -1,0 +1,253 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* ===========================================================
+   VS Code IDE Theme — Dark Mode Default
+   =========================================================== */
+:root {
+  --radius: 0.375rem;
+
+  /* VS Code Dark+ palette */
+  --background: #1e1e1e;
+  --foreground: #d4d4d4;
+
+  --card: #252526;
+  --card-foreground: #d4d4d4;
+  --popover: #2d2d2d;
+  --popover-foreground: #d4d4d4;
+
+  --primary: #0e639c;        /* VS Code blue */
+  --primary-foreground: #ffffff;
+
+  --secondary: #3c3c3c;
+  --secondary-foreground: #d4d4d4;
+
+  --muted: #2d2d2d;
+  --muted-foreground: #858585;
+
+  --accent: #094771;
+  --accent-foreground: #ffffff;
+
+  --destructive: #f14c4c;
+
+  --border: #3c3c3c;
+  --input: #3c3c3c;
+  --ring: #0e639c;
+
+  --chart-1: #4fc3f7;
+  --chart-2: #81c784;
+  --chart-3: #ffb74d;
+  --chart-4: #e57373;
+  --chart-5: #ba68c8;
+
+  --sidebar: #252526;
+  --sidebar-foreground: #cccccc;
+  --sidebar-primary: #0e639c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #094771;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #3c3c3c;
+  --sidebar-ring: #0e639c;
+
+  /* Custom IDE tokens */
+  --ide-activitybar: #333333;
+  --ide-statusbar: #007acc;
+  --ide-statusbar-foreground: #ffffff;
+  --ide-titlebar: #3c3c3c;
+  --ide-tab-active: #1e1e1e;
+  --ide-tab-inactive: #2d2d2d;
+  --ide-tab-border: #252526;
+  --ide-gutter: #1e1e1e;
+}
+
+.dark {
+  --background: #1e1e1e;
+  --foreground: #d4d4d4;
+  --card: #252526;
+  --card-foreground: #d4d4d4;
+  --popover: #2d2d2d;
+  --popover-foreground: #d4d4d4;
+  --primary: #0e639c;
+  --primary-foreground: #ffffff;
+  --secondary: #3c3c3c;
+  --secondary-foreground: #d4d4d4;
+  --muted: #2d2d2d;
+  --muted-foreground: #858585;
+  --accent: #094771;
+  --accent-foreground: #ffffff;
+  --destructive: #f14c4c;
+  --border: #3c3c3c;
+  --input: #3c3c3c;
+  --ring: #0e639c;
+  --chart-1: #4fc3f7;
+  --chart-2: #81c784;
+  --chart-3: #ffb74d;
+  --chart-4: #e57373;
+  --chart-5: #ba68c8;
+  --sidebar: #252526;
+  --sidebar-foreground: #cccccc;
+  --sidebar-primary: #0e639c;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #094771;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #3c3c3c;
+  --sidebar-ring: #0e639c;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html, body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    font-family: var(--font-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+  code, pre, .font-mono {
+    font-family: var(--font-mono), "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  }
+}
+
+/* Custom scrollbar — VS Code style */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #424242;
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #4f4f4f;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Activity Bar */
+.ide-activitybar {
+  background: var(--ide-activitybar);
+}
+
+/* Status Bar */
+.ide-statusbar {
+  background: var(--ide-statusbar);
+  color: var(--ide-statusbar-foreground);
+}
+
+/* Title Bar */
+.ide-titlebar {
+  background: var(--ide-titlebar);
+}
+
+/* Tab strip */
+.ide-tab {
+  border-right: 1px solid var(--ide-tab-border);
+}
+.ide-tab-active {
+  background: var(--ide-tab-active);
+  color: #ffffff;
+}
+.ide-tab-inactive {
+  background: var(--ide-tab-inactive);
+  color: #969696;
+}
+
+/* Selected file in tree */
+.file-tree-item-active {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+/* Animations */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.pulse-dot {
+  animation: pulse-dot 1.2s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
+}
+.cursor-blink {
+  animation: blink 1s steps(2, end) infinite;
+}
+
+/* Chat message fade-in */
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in-up {
+  animation: fade-in-up 0.25s ease-out;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #4fc3f7 0%, #ba68c8 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Glow effect */
+.glow-blue {
+  box-shadow: 0 0 12px rgba(78, 195, 247, 0.3);
+}
+.glow-green {
+  box-shadow: 0 0 12px rgba(129, 199, 132, 0.3);
+}
+.glow-amber {
+  box-shadow: 0 0 12px rgba(255, 183, 77, 0.3);
+}

@@ -1,0 +1,227 @@
+// DeepSeek App Studio — Prisma Schema (v2 — genişletilmiş)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  template    String?
+  standard    String?
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  files       File[]
+  messages    Message[]
+  versions    Version[]
+  agentTrees  AgentTree[]
+  shareLinks  ShareLink[]
+}
+
+model File {
+  id         String   @id @default(cuid())
+  projectId  String
+  path       String
+  content    String   @default("")
+  language   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@unique([projectId, path])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  projectId  String
+  role       String
+  content    String
+  modelUsed  String?
+  tokensIn   Int?
+  tokensOut  Int?
+  latencyMs  Int?
+  metadata   String?
+  createdAt  DateTime @default(now())
+
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model Version {
+  id         String   @id @default(cuid())
+  projectId  String
+  version    String
+  message    String?
+  snapshot   String
+  createdAt  DateTime @default(now())
+
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+model AgentRun {
+  id         String   @id @default(cuid())
+  projectId  String?
+  status     String   @default("idle")
+  plan       String?
+  steps      String?
+  toolsUsed  String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Setting {
+  id         String   @id @default(cuid())
+  key        String   @unique
+  value      String
+  updatedAt  DateTime @updatedAt
+}
+
+// ---------- YENİ: User Auth (2FA) ----------
+
+model UserAuth {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  twoFactorSecret String?
+  twoFactorEnabled Boolean @default(false)
+  backupCodes     String?  // JSON array
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+// ---------- YENİ: Notification Log ----------
+
+model NotificationLog {
+  id         String   @id @default(cuid())
+  type       String   // email, push, in-app
+  recipient  String
+  subject    String?
+  body       String
+  status     String   @default("pending") // pending, sent, failed
+  error      String?
+  sentAt     DateTime?
+  createdAt  DateTime @default(now())
+}
+
+// ---------- YENİ: Agent Templates (kullanıcı şablonları) ----------
+
+model AgentTemplate {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    String   @default("custom") // custom, builtin, imported
+  nodes       String   // JSON: AgentNode[]
+  edges       String   // JSON: AgentEdge[]
+  systemPrompt String?
+  isPublic    Boolean  @default(false)
+  tags        String?
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  agentTrees  AgentTree[]
+}
+
+// ---------- YENİ: Agent Tree (çalışan agent orkestrasyonu) ----------
+
+model AgentTree {
+  id          String   @id @default(cuid())
+  projectId   String?
+  templateId  String?
+  name        String
+  status      String   @default("idle") // idle, running, completed, error
+  nodes       String   // JSON: runtime nodes (with prompts visible)
+  edges       String
+  results     String?  // JSON: execution results per node
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  template    AgentTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+}
+
+// ---------- YENİ: Connector ----------
+
+model Connector {
+  id          String   @id @default(cuid())
+  type        String   // github, slack, postgres, mongodb, rest, mcp
+  name        String
+  config      String   // JSON (encrypted sensitive)
+  status      String   @default("disconnected") // connected, disconnected, error
+  lastSync    DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ---------- YENİ: Knowledge Base (RAG) ----------
+
+model KnowledgeBase {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  embeddingModel String @default("text-embedding-3-small")
+  chunkCount  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  documents   KnowledgeDocument[]
+}
+
+model KnowledgeDocument {
+  id          String   @id @default(cuid())
+  kbId        String
+  title       String
+  content     String
+  chunks      String?  // JSON: chunk metadata
+  metadata    String?
+  createdAt   DateTime @default(now())
+
+  kb          KnowledgeBase @relation(fields: [kbId], references: [id], onDelete: Cascade)
+
+  @@index([kbId])
+}
+
+// ---------- YENİ: Share Link (geri alınabilir) ----------
+
+model ShareLink {
+  id          String   @id @default(cuid())
+  token       String   @unique
+  projectId   String
+  name        String?
+  expiresAt   DateTime?
+  viewCount   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+// ---------- YENİ: Skill Registry ----------
+
+model Skill {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String
+  category    String   // motion, ux, security, code-quality, enterprise, ai
+  file        String
+  enabled     Boolean  @default(true)
+  version     String   @default("1.0")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
