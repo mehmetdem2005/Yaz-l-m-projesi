@@ -263,8 +263,8 @@ function Viewport3D({
         maxPolarAngle={Math.PI / 2 - 0.1}
       />
 
-      {/* Gizmo */}
-      <GizmoHelper alignment="bottom-right" margin={[40, 40]}>
+      {/* Gizmo — küçük eksen göstergesi */}
+      <GizmoHelper alignment="bottom-right" margin={[20, 20]}>
         <GizmoViewport axisColors={['#ef4444', '#22c55e', '#3b82f6']} labelColor="white" />
       </GizmoHelper>
 

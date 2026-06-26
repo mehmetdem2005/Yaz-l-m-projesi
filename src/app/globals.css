@@ -530,13 +530,13 @@ canvas {
 /* Three.js GizmoViewport canvas'ını küçült */
 .canvas-container + div,
 [data-engine="three.js"] {
-  max-width: 60px !important;
-  max-height: 60px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
 }
 
 /* R3F GizmoHelper canvas */
 div[class*="gizmo"] canvas,
 div[style*="pointer-events"] canvas {
-  max-width: 60px !important;
-  max-height: 60px !important;
+  max-width: 40px !important;
+  max-height: 40px !important;
 }
