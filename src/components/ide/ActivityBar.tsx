@@ -1,164 +1,155 @@
 'use client';
 
-import {
-  LayoutDashboard,
-  FolderGit2,
-  Code2,
-  ScrollText,
-  BookMarked,
-  Bot,
-  LayoutTemplate,
-  History,
-  Settings,
-  BarChart3,
-  FileText,
-  Download,
-  Network,
-  Radar,
-  SquareTerminal,
-  Sparkles,
-  Plug,
-  Boxes,
-  Braces,
-  Wand2,
-  Database,
-  Globe,
-  ShieldCheck,
-  Users,
-  GitBranch,
-  Flag,
-  AlertCircle,
-  Activity,
-  Palette,
-  Bell,
-  Workflow,
-  Package,
-  Rocket,
-  Shield,
-  Box,
-  Lock,
-  Clock,
-  FlaskConical,
-  type LucideIcon,
-} from 'lucide-react';
 import { useStore, type ViewKey } from '@/lib/store';
 import { cn } from '@/lib/utils';
+import {
+  LayoutDashboard,
+  Code2,
+  Box,
+  Gamepad2,
+  Rocket,
+  Settings,
+  type LucideIcon,
+} from 'lucide-react';
 
-interface NavItem {
-  id: ViewKey;
+// ---------- Studio Mode System ----------
+// VS Code + Unity tarzı: 5 ana stüdyo modu, her modun altında view'ler
+
+export type StudioMode = 'dashboard' | 'code' | '3d-studio' | 'game-studio' | 'deploy';
+
+interface StudioModeDef {
+  id: StudioMode;
   icon: LucideIcon;
   label: string;
-  badge?: string;
-  section: 'main' | 'agents' | 'tools' | 'system' | 'team' | 'ops';
+  shortcut: string;
+  views: ViewKey[];
 }
 
-const NAV_ITEMS: NavItem[] = [
-  // Main — günlük kullanım
-  { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', section: 'main' },
-  { id: 'projects', icon: FolderGit2, label: 'Projeler', section: 'main' },
-  { id: 'editor', icon: Code2, label: 'Editör', section: 'main' },
-  // Agents — AI orkestrasyon
-  { id: 'agent-tree', icon: Network, label: 'Agent Tree Studio', section: 'agents' },
-  { id: 'agent-monitor', icon: Radar, label: 'Mission Control', section: 'agents' },
-  { id: 'agent-templates', icon: Boxes, label: 'Agent Şablonları', section: 'agents' },
-  { id: 'agent', icon: Bot, label: 'ReAct Agent', section: 'agents' },
-  // Tools — geliştirici araçları
-  { id: 'sandbox', icon: SquareTerminal, label: 'Sandbox', section: 'tools' },
-  { id: 'skills', icon: Sparkles, label: 'Skiller', badge: '6', section: 'tools' },
-  { id: 'dev-prompts', icon: Wand2, label: 'Dev Prompts', badge: '10', section: 'tools' },
-  { id: 'snippets', icon: Braces, label: 'Snippet\'lar', section: 'tools' },
-  { id: 'connectors', icon: Plug, label: 'Connector & MCP', section: 'tools' },
-  { id: 'db-explorer', icon: Database, label: 'Veritabanı Gezgini', section: 'tools' },
-  { id: 'api-tester', icon: Globe, label: 'API Tester', section: 'tools' },
-  { id: 'security-scanner', icon: ShieldCheck, label: 'Security Scanner', section: 'tools' },
-  { id: 'secret-scanner', icon: Lock, label: 'Secret Scanner', section: 'tools' },
-  { id: 'bundle-analyzer', icon: Package, label: 'Bundle Analyzer', section: 'tools' },
-  { id: 'test-runner', icon: FlaskConical, label: 'Test Runner', section: 'tools' },
-  { id: 'audit-log', icon: ScrollText, label: 'Audit Log', section: 'tools' },
-  { id: 'dependency-monitor', icon: Package, label: 'Dependency Monitor', section: 'tools' },
-  { id: 'deploy-targets', icon: Rocket, label: 'Deploy Targets', section: 'tools' },
-  { id: 'nexus-3d', icon: Box, label: 'NEXUS 3D Studio', badge: 'AAA', section: 'tools' },
-  { id: 'templates', icon: LayoutTemplate, label: 'Proje Şablonları', section: 'tools' },
-  // Team — işbirliği
-  { id: 'team', icon: Users, label: 'Takım', section: 'team' },
-  { id: 'collab', icon: Users, label: 'Canlı İşbirliği', section: 'team' },
-  { id: 'two-factor', icon: Shield, label: '2FA Güvenlik', section: 'team' },
-  // Ops — operasyon
-  { id: 'error-tracking', icon: AlertCircle, label: 'Hata Takibi', section: 'ops' },
-  { id: 'feature-flags', icon: Flag, label: 'Feature Flags', section: 'ops' },
-  { id: 'webhooks', icon: GitBranch, label: 'Webhooks', section: 'ops' },
-  { id: 'cron-jobs', icon: Clock, label: 'Cron Jobs', section: 'ops' },
-  { id: 'status', icon: Activity, label: 'Status Page', section: 'ops' },
-  { id: 'workflows', icon: Workflow, label: 'Workflow Builder', section: 'ops' },
-  { id: 'notifications', icon: Bell, label: 'Bildirimler', section: 'ops' },
-  // System
-  { id: 'policies', icon: ScrollText, label: 'Politikalar', badge: '30', section: 'system' },
-  { id: 'standards', icon: BookMarked, label: 'Standartlar', badge: '18', section: 'system' },
-  { id: 'analytics', icon: BarChart3, label: 'Analitik', section: 'system' },
-  { id: 'history', icon: History, label: 'Sürüm Geçmişi', section: 'system' },
-  { id: 'docs', icon: FileText, label: 'API Dokümantasyon', section: 'system' },
-  { id: 'export', icon: Download, label: 'Deploy & Export', section: 'system' },
-  { id: 'theme-editor', icon: Palette, label: 'Tema Editörü', section: 'system' },
-  { id: 'settings', icon: Settings, label: 'Ayarlar', section: 'system' },
+const STUDIO_MODES: StudioModeDef[] = [
+  {
+    id: 'dashboard',
+    icon: LayoutDashboard,
+    label: 'Dashboard',
+    shortcut: '1',
+    views: ['dashboard', 'analytics', 'history', 'settings', 'docs'],
+  },
+  {
+    id: 'code',
+    icon: Code2,
+    label: 'Code Studio',
+    shortcut: '2',
+    views: ['editor', 'projects', 'sandbox', 'snippets', 'dev-prompts', 'api-tester', 'db-explorer', 'connectors', 'skills', 'templates'],
+  },
+  {
+    id: '3d-studio',
+    icon: Box,
+    label: '3D Studio',
+    shortcut: '3',
+    views: ['nexus-3d', 'game-editor'],
+  },
+  {
+    id: 'game-studio',
+    icon: Gamepad2,
+    label: 'Game Studio',
+    shortcut: '4',
+    views: ['agent-tree', 'agent-monitor', 'agent-templates', 'agent', 'workflows', 'test-runner', 'bundle-analyzer', 'security-scanner', 'secret-scanner', 'dependency-monitor'],
+  },
+  {
+    id: 'deploy',
+    icon: Rocket,
+    label: 'Deploy',
+    shortcut: '5',
+    views: ['export', 'deploy-targets', 'cron-jobs', 'webhooks', 'status', 'audit-log', 'error-tracking', 'feature-flags', 'notifications', 'policies', 'standards', 'team', 'collab', 'two-factor', 'theme-editor'],
+  },
 ];
 
-const SECTIONS: { id: NavItem['section']; label: string }[] = [
-  { id: 'main', label: 'Genel' },
-  { id: 'agents', label: 'Agentlar' },
-  { id: 'tools', label: 'Araçlar' },
-  { id: 'team', label: 'Takım' },
-  { id: 'ops', label: 'Operasyon' },
-  { id: 'system', label: 'Sistem' },
-];
+// View → Mode mapping
+const VIEW_TO_MODE: Partial<Record<ViewKey, StudioMode>> = {};
+STUDIO_MODES.forEach((m) => {
+  m.views.forEach((v) => {
+    VIEW_TO_MODE[v] = m.id;
+  });
+});
+
+export function getModeForView(view: ViewKey): StudioMode {
+  return VIEW_TO_MODE[view] || 'dashboard';
+}
+
+export function getModeViews(mode: StudioMode): ViewKey[] {
+  return STUDIO_MODES.find((m) => m.id === mode)?.views || [];
+}
+
+// ---------- ActivityBar Component ----------
 
 export function ActivityBar() {
   const activeView = useStore((s) => s.activeView);
   const setView = useStore((s) => s.setView);
+  const activeMode = getModeForView(activeView);
 
   return (
-    <nav className="ide-activitybar w-11 md:w-14 flex flex-col items-center py-1 md:py-2 border-r border-cyan-500/20 flex-shrink-0 overflow-y-auto overflow-x-hidden jarvis-scrollbar"
-      style={{ scrollbarWidth: 'thin', maxHeight: '100%', background: 'rgba(5, 10, 20, 0.95)' }}>
-      {SECTIONS.map((section, idx) => {
-        const sectionItems = NAV_ITEMS.filter((n) => n.section === section.id);
-        if (sectionItems.length === 0) return null;
+    <nav
+      className="w-12 flex flex-col items-center py-2 border-r border-cyan-500/20 flex-shrink-0 overflow-y-auto jarvis-scrollbar"
+      style={{ scrollbarWidth: 'thin', maxHeight: '100%', background: 'rgba(3, 8, 18, 0.98)' }}
+    >
+      {/* Studio Mode Butonları */}
+      {STUDIO_MODES.map((mode, idx) => {
+        const Icon = mode.icon;
+        const active = activeMode === mode.id;
         return (
-          <div key={section.id} className="w-full">
-            {idx > 0 && <div className="h-px bg-cyan-500/20 my-1 mx-2" />}
-            {sectionItems.map((item) => {
-              const Icon = item.icon;
-              const active = activeView === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setView(item.id)}
-                  title={item.label}
-                  className={cn(
-                    'group relative w-11 md:w-14 h-9 md:h-11 flex items-center justify-center transition-all',
-                    active
-                      ? 'text-cyan-300 bg-cyan-500/10'
-                      : 'text-gray-600 hover:text-cyan-400 hover:bg-cyan-500/5'
-                  )}
-                  style={active ? { boxShadow: 'inset 0 0 10px rgba(0,200,255,0.15)' } : undefined}
-                >
-                  {active && (
-                    <span className="absolute left-0 top-1 bottom-1 w-0.5 bg-cyan-400 rounded-r" style={{ boxShadow: '0 0 8px rgba(0,255,255,0.6)' }} />
-                  )}
-                  <Icon size={16} strokeWidth={active ? 2.5 : 1.5} className={active ? 'jarvis-glow-sm' : ''} />
-                  {item.badge && (
-                    <span className="absolute top-0.5 right-0.5 text-[7px] bg-cyan-500 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center font-mono" style={{ boxShadow: '0 0 5px rgba(0,200,255,0.5)' }}>
-                      {item.badge}
-                    </span>
-                  )}
-                  {/* Tooltip */}
-                  <span className="absolute left-full ml-2 px-2 py-1 bg-black text-cyan-300 text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 border border-cyan-500/30" style={{ boxShadow: '0 0 10px rgba(0,200,255,0.2)' }}>
-                    {item.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+          <button
+            key={mode.id}
+            onClick={() => setView(mode.views[0])}
+            title={`${mode.label} (${mode.shortcut})`}
+            className={cn(
+              'group relative w-12 h-12 flex items-center justify-center transition-all',
+              active
+                ? 'text-cyan-300 bg-cyan-500/10'
+                : 'text-gray-600 hover:text-cyan-400 hover:bg-cyan-500/5'
+            )}
+            style={active ? { boxShadow: 'inset 0 0 12px rgba(0,200,255,0.15)' } : undefined}
+          >
+            {active && (
+              <span
+                className="absolute left-0 top-1 bottom-1 w-0.5 bg-cyan-400 rounded-r"
+                style={{ boxShadow: '0 0 8px rgba(0,255,255,0.6)' }}
+              />
+            )}
+            <Icon size={18} strokeWidth={active ? 2.5 : 1.5} className={active ? 'jarvis-glow-sm' : ''} />
+            {/* Tooltip */}
+            <span
+              className="absolute left-full ml-2 px-2 py-1 bg-black text-cyan-300 text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 border border-cyan-500/30"
+              style={{ boxShadow: '0 0 10px rgba(0,200,255,0.2)' }}
+            >
+              {mode.label} <kbd className="text-cyan-500/60 ml-1">{mode.shortcut}</kbd>
+            </span>
+          </button>
         );
       })}
+
+      {/* Ayırıcı */}
+      <div className="h-px bg-cyan-500/20 my-2 mx-3 w-6" />
+
+      {/* Ayarlar */}
+      <button
+        onClick={() => setView('settings')}
+        title="Ayarlar"
+        className={cn(
+          'group relative w-12 h-12 flex items-center justify-center transition-all',
+          activeView === 'settings'
+            ? 'text-cyan-300 bg-cyan-500/10'
+            : 'text-gray-600 hover:text-cyan-400 hover:bg-cyan-500/5'
+        )}
+      >
+        <Settings size={16} strokeWidth={1.5} />
+        <span
+          className="absolute left-full ml-2 px-2 py-1 bg-black text-cyan-300 text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 border border-cyan-500/30"
+        >
+          Ayarlar
+        </span>
+      </button>
     </nav>
   );
 }
+
+// Eski export — compatibility
+export { STUDIO_MODES as NAV_ITEMS };

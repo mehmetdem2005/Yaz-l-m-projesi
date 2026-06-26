@@ -55,8 +55,8 @@ import { Settings } from '@/components/views/Settings';
 import { Analytics } from '@/components/views/Analytics';
 import { Docs } from '@/components/views/Docs';
 import { ExportView } from '@/components/views/ExportView';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { ActivityBar as MobileActivityBar } from '@/components/ide/ActivityBar';
+import { SidePanel } from '@/components/ide/SidePanel';
+import { Inspector } from '@/components/ide/Inspector';
 import { applyTheme, getStoredTheme, getThemeById } from '@/lib/themes';
 import { matchShortcut } from '@/lib/shortcuts';
 import { toast } from 'sonner';
@@ -231,22 +231,26 @@ export default function Home() {
     <>
     {/* Dikey mod engeli — sadece yatay */}
     <PortraitBlocker />
-    <div className="h-screen flex flex-col overflow-hidden jarvis-grid-bg" style={{ background: 'rgba(5,10,20,0.98)' }}>
+    <div className="h-screen flex flex-col overflow-hidden jarvis-grid-bg" style={{ background: 'rgba(3, 8, 18, 0.98)' }}>
       <TitleBar />
       <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar — her zaman görünür (PC = Mobil) */}
-        <div className="flex sidebar-desktop">
-          <ActivityBar />
-        </div>
+        {/* ActivityBar — 5 stüdyo modu */}
+        <ActivityBar />
 
-        {/* Main content area */}
-        <div className="flex-1 flex flex-col min-w-0 main-content">
+        {/* SidePanel — mode'a göre view listesi */}
+        <SidePanel />
+
+        {/* Main Viewport — aktif view */}
+        <div className="flex-1 flex flex-col min-w-0">
           <div className="flex-1 overflow-hidden">
             {renderView()}
           </div>
-          {/* Terminal panel */}
+          {/* Console/Terminal */}
           <TerminalPanel />
         </div>
+
+        {/* Inspector — sağ panel */}
+        <Inspector />
       </div>
       <StatusBar />
 
