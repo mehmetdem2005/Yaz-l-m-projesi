@@ -1271,7 +1271,7 @@ export function Nexus3DStudioView() {
       {/* Main: 3D Viewport */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* Toolbar */}
-        <div className="border-b border-border bg-[#1e1e1e] px-2 py-1 flex items-center gap-1 flex-wrap">
+        <div className="border-b border-border bg-[#1e1e1e] px-2 py-1 flex items-center gap-1 overflow-x-auto jarvis-scrollbar" style={{ flexWrap: 'nowrap' }}>
           {/* Editor mode — Object / Edit / Weight Paint / Sculpt */}
           <div className="flex items-center gap-0.5 bg-[#252526] rounded p-0.5">
             <Button
