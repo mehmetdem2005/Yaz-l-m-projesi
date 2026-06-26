@@ -80,44 +80,57 @@ export function Dashboard() {
   ];
 
   return (
-    <div className="flex-1 overflow-auto bg-background">
-      <div className="p-6 max-w-7xl mx-auto space-y-6">
-        {/* Hero */}
-        <div className="rounded-lg bg-gradient-to-br from-[#0e639c] via-[#1e3a5f] to-[#252526] p-8 text-white relative overflow-hidden">
+    <div className="flex-1 overflow-auto jarvis-grid-bg" style={{ background: 'rgba(5,10,20,0.95)' }}>
+      <div className="p-3 md:p-6 max-w-7xl mx-auto space-y-4 md:space-y-6">
+        {/* Hero — Jarvis Style */}
+        <div
+          className="rounded-lg p-6 md:p-8 relative overflow-hidden jarvis-border"
+          style={{
+            background: 'linear-gradient(135deg, rgba(0,30,60,0.9) 0%, rgba(5,15,30,0.95) 50%, rgba(10,5,25,0.9) 100%)',
+            boxShadow: '0 0 30px rgba(0,200,255,0.15), inset 0 0 20px rgba(0,100,200,0.05)',
+          }}
+        >
           <div className="relative z-10 max-w-2xl">
-            <h1 className="text-3xl font-bold mb-2">
-              DeepSeek App Studio&apos;ya Hoş Geldiniz
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-2 h-2 rounded-full bg-cyan-400 jarvis-pulse" />
+              <span className="text-cyan-400 text-[10px] font-mono uppercase tracking-widest jarvis-glow-sm">System Online</span>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-bold mb-2 text-cyan-100 jarvis-glow-sm">
+              DeepSeek App Studio
             </h1>
-            <p className="text-blue-100 mb-6">
+            <p className="text-cyan-300/60 mb-6 text-sm">
               Kurumsal standartlarda AI kod üretimi. TOGAF, ISO 27001, SOC 2, GDPR uyumlu.
-              Çoklu DeepSeek modeli (V3.2, R1, V4 Pro, V4 Flash) ile Google/Amazon ölçeğinde mimari.
+              Çoklu DeepSeek modeli ile Google/Amazon ölçeğinde mimari.
             </p>
-            <div className="flex flex-wrap gap-3">
-              <Button onClick={() => setView('projects')} className="bg-white text-[#0e639c] hover:bg-blue-50">
-                <Plus className="mr-2" size={16} />
+            <div className="flex flex-wrap gap-2 md:gap-3">
+              <button
+                onClick={() => setView('projects')}
+                className="px-4 py-2 rounded text-sm font-medium transition-all jarvis-btn-active"
+              >
+                <Plus className="mr-2 inline" size={14} />
                 Yeni Proje
-              </Button>
-              <Button
-                variant="outline"
+              </button>
+              <button
                 onClick={() => setView('templates')}
-                className="border-white/30 text-white hover:bg-white/10"
+                className="px-4 py-2 rounded text-sm font-medium jarvis-btn"
               >
                 Şablonlardan Başla
-              </Button>
-              <Button
-                variant="outline"
+              </button>
+              <button
                 onClick={() => setView('docs')}
-                className="border-white/30 text-white hover:bg-white/10"
+                className="px-4 py-2 rounded text-sm font-medium jarvis-btn"
               >
                 Dokümantasyon
-              </Button>
+              </button>
             </div>
           </div>
-          <div className="absolute right-0 top-0 w-96 h-full opacity-20 pointer-events-none">
+          {/* Decorative arc */}
+          <div className="absolute right-0 top-0 w-64 h-full opacity-10 pointer-events-none">
             <div className="absolute inset-0 flex items-center justify-center">
-              <Bot size={280} strokeWidth={0.5} />
+              <div className="w-48 h-48 rounded-full border-2 border-cyan-400 jarvis-arc" style={{ borderTopColor: 'transparent' }} />
             </div>
           </div>
+          
         </div>
 
         {/* API Key Warning */}

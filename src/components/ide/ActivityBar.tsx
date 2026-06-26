@@ -116,14 +116,14 @@ export function ActivityBar() {
   const setView = useStore((s) => s.setView);
 
   return (
-    <nav className="ide-activitybar w-12 md:w-14 flex flex-col items-center py-2 border-r border-black/30 flex-shrink-0 overflow-y-auto overflow-x-hidden"
-      style={{ scrollbarWidth: 'thin', maxHeight: '100%' }}>
+    <nav className="ide-activitybar w-11 md:w-14 flex flex-col items-center py-1 md:py-2 border-r border-cyan-500/20 flex-shrink-0 overflow-y-auto overflow-x-hidden jarvis-scrollbar"
+      style={{ scrollbarWidth: 'thin', maxHeight: '100%', background: 'rgba(5, 10, 20, 0.95)' }}>
       {SECTIONS.map((section, idx) => {
         const sectionItems = NAV_ITEMS.filter((n) => n.section === section.id);
         if (sectionItems.length === 0) return null;
         return (
           <div key={section.id} className="w-full">
-            {idx > 0 && <div className="h-px bg-white/10 my-1.5 mx-2" />}
+            {idx > 0 && <div className="h-px bg-cyan-500/20 my-1 mx-2" />}
             {sectionItems.map((item) => {
               const Icon = item.icon;
               const active = activeView === item.id;
@@ -133,23 +133,24 @@ export function ActivityBar() {
                   onClick={() => setView(item.id)}
                   title={item.label}
                   className={cn(
-                    'group relative w-12 md:w-14 h-10 md:h-11 flex items-center justify-center transition-all',
+                    'group relative w-11 md:w-14 h-9 md:h-11 flex items-center justify-center transition-all',
                     active
-                      ? 'text-white bg-white/5'
-                      : 'text-gray-500 hover:text-white hover:bg-white/3'
+                      ? 'text-cyan-300 bg-cyan-500/10'
+                      : 'text-gray-600 hover:text-cyan-400 hover:bg-cyan-500/5'
                   )}
+                  style={active ? { boxShadow: 'inset 0 0 10px rgba(0,200,255,0.15)' } : undefined}
                 >
                   {active && (
-                    <span className="absolute left-0 top-1 bottom-1 w-0.5 bg-blue-400 rounded-r" />
+                    <span className="absolute left-0 top-1 bottom-1 w-0.5 bg-cyan-400 rounded-r" style={{ boxShadow: '0 0 8px rgba(0,255,255,0.6)' }} />
                   )}
-                  <Icon size={18} strokeWidth={active ? 2 : 1.5} />
+                  <Icon size={16} strokeWidth={active ? 2.5 : 1.5} className={active ? 'jarvis-glow-sm' : ''} />
                   {item.badge && (
-                    <span className="absolute top-0.5 right-0.5 text-[7px] bg-blue-500 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center font-mono">
+                    <span className="absolute top-0.5 right-0.5 text-[7px] bg-cyan-500 text-white rounded-full w-3.5 h-3.5 flex items-center justify-center font-mono" style={{ boxShadow: '0 0 5px rgba(0,200,255,0.5)' }}>
                       {item.badge}
                     </span>
                   )}
                   {/* Tooltip */}
-                  <span className="absolute left-full ml-2 px-2 py-1 bg-black text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 border border-white/10">
+                  <span className="absolute left-full ml-2 px-2 py-1 bg-black text-cyan-300 text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 border border-cyan-500/30" style={{ boxShadow: '0 0 10px rgba(0,200,255,0.2)' }}>
                     {item.label}
                   </span>
                 </button>

@@ -250,3 +250,150 @@
 .glow-amber {
   box-shadow: 0 0 12px rgba(255, 183, 77, 0.3);
 }
+
+/* ===========================================================
+   JARVIS THEME — Futuristic Holographic Interface
+   =========================================================== */
+
+/* Neon glow utilities */
+.jarvis-glow {
+  text-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
+}
+.jarvis-glow-sm {
+  text-shadow: 0 0 5px currentColor;
+}
+.jarvis-glow-box {
+  box-shadow: 0 0 15px rgba(0, 200, 255, 0.3), inset 0 0 10px rgba(0, 200, 255, 0.1);
+}
+.jarvis-glow-box-cyan {
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.4), inset 0 0 10px rgba(0, 255, 255, 0.1);
+}
+
+/* Holographic border */
+.jarvis-border {
+  border: 1px solid rgba(0, 200, 255, 0.3) !important;
+  box-shadow: 0 0 10px rgba(0, 200, 255, 0.15), inset 0 0 5px rgba(0, 200, 255, 0.05);
+}
+.jarvis-border-active {
+  border: 1px solid rgba(0, 255, 255, 0.6) !important;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.4), inset 0 0 8px rgba(0, 255, 255, 0.1);
+}
+
+/* Scanline overlay */
+.jarvis-scanline {
+  position: relative;
+  overflow: hidden;
+}
+.jarvis-scanline::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 200, 255, 0.03) 2px,
+    rgba(0, 200, 255, 0.03) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* Pulse animation */
+@keyframes jarvis-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 10px rgba(0, 255, 255, 0.4); }
+  50% { opacity: 0.7; box-shadow: 0 0 20px rgba(0, 255, 255, 0.6); }
+}
+.jarvis-pulse {
+  animation: jarvis-pulse 2s ease-in-out infinite;
+}
+
+/* Holographic grid background */
+.jarvis-grid-bg {
+  background-image:
+    linear-gradient(rgba(0, 200, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 200, 255, 0.05) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+/* Jarvis button style */
+.jarvis-btn {
+  background: rgba(0, 100, 200, 0.15) !important;
+  border: 1px solid rgba(0, 200, 255, 0.4) !important;
+  color: #00ddff !important;
+  text-shadow: 0 0 5px rgba(0, 200, 255, 0.5);
+  transition: all 0.2s;
+}
+.jarvis-btn:hover {
+  background: rgba(0, 150, 255, 0.25) !important;
+  border-color: rgba(0, 255, 255, 0.7) !important;
+  box-shadow: 0 0 15px rgba(0, 200, 255, 0.4);
+}
+.jarvis-btn-active {
+  background: rgba(0, 200, 255, 0.2) !important;
+  border: 1px solid rgba(0, 255, 255, 0.7) !important;
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.4);
+  color: #00ffff !important;
+}
+
+/* Force sidebar visible on ALL screen sizes (PC = Mobile) */
+@media (max-width: 767px) {
+  .ide-activitybar {
+    display: flex !important;
+    width: 48px !important;
+  }
+  /* Hide mobile bottom nav — use sidebar like PC */
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+  /* Sidebar always visible */
+  .sidebar-desktop {
+    display: flex !important;
+  }
+  /* Content takes remaining space */
+  .main-content {
+    width: calc(100% - 48px) !important;
+  }
+}
+
+/* Jarvis scrollbar */
+.jarvis-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.jarvis-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(0, 200, 255, 0.4);
+  border-radius: 2px;
+  box-shadow: 0 0 5px rgba(0, 200, 255, 0.3);
+}
+
+/* Jarvis card */
+.jarvis-card {
+  background: rgba(10, 20, 40, 0.8) !important;
+  border: 1px solid rgba(0, 200, 255, 0.2) !important;
+  box-shadow: 0 0 10px rgba(0, 100, 200, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+/* Jarvis text colors */
+.jarvis-text-cyan { color: #00ddff !important; }
+.jarvis-text-bright { color: #00ffff !important; }
+.jarvis-text-dim { color: rgba(0, 200, 255, 0.6) !important; }
+
+/* Loading arc animation */
+@keyframes jarvis-arc {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.jarvis-arc {
+  animation: jarvis-arc 3s linear infinite;
+}
+
+/* Fade in up */
+@keyframes jarvis-fade-in-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.jarvis-fade-in {
+  animation: jarvis-fade-in-up 0.4s ease-out;
+}

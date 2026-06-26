@@ -228,23 +228,16 @@ export default function Home() {
   };
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-background">
+    <div className="h-screen flex flex-col overflow-hidden bg-background jarvis-grid-bg">
       <TitleBar />
       <div className="flex-1 flex overflow-hidden">
-        {/* Desktop sidebar */}
-        <div className="hidden md:flex">
+        {/* Sidebar — her zaman görünür (PC = Mobil) */}
+        <div className="flex sidebar-desktop">
           <ActivityBar />
         </div>
 
-        {/* Mobile drawer */}
-        <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
-          <SheetContent side="left" className="w-[260px] p-0 bg-[#333333] border-white/10">
-            <MobileActivityBar />
-          </SheetContent>
-        </Sheet>
-
         {/* Main content area */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="flex-1 flex flex-col min-w-0 main-content">
           <div className="flex-1 overflow-hidden">
             {renderView()}
           </div>
@@ -253,9 +246,6 @@ export default function Home() {
         </div>
       </div>
       <StatusBar />
-
-      {/* Mobile bottom nav */}
-      <MobileBottomNav />
 
       {/* Mobile chat panel */}
       <MobileChatPanel
