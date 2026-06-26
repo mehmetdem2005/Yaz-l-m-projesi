@@ -1,9 +1,20 @@
 'use client';
 
-import { useState, useRef, Suspense, useMemo } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Grid, Environment, GizmoHelper, GizmoViewport, Stats } from '@react-three/drei';
+import { useState, useRef, Suspense, useMemo, useCallback, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+import { OrbitControls, Grid, Environment, GizmoHelper, GizmoViewport, Stats, TransformControls as DreiTransformControls } from '@react-three/drei';
 import * as THREE from 'three';
+
+// Canvas'ı SSR'siz yükle — production crash'i önler
+const Canvas = dynamic(() => import('@react-three/fiber').then(mod => mod.Canvas), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center" style={{ background: '#0a0a15' }}>
+      <div className="text-cyan-400 text-xs animate-pulse">3D Engine yükleniyor...</div>
+    </div>
+  ),
+});
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -119,6 +130,7 @@ function Viewport3D({
   editorMode,
   weightPaintBone,
   onUpdateObject,
+  showGizmo,
 }: {
   showGrid: boolean;
   showStats: boolean;
@@ -132,7 +144,19 @@ function Viewport3D({
   editorMode: 'object' | 'edit' | 'weight-paint' | 'sculpt';
   weightPaintBone: string | null;
   onUpdateObject: (id: string, updates: Partial<SceneObject3D>) => void;
+  showGizmo: boolean;
 }) {
+  const meshRefs = useRef<Record<string, any>>({});
+  const [gizmoReady, setGizmoReady] = useState(false);
+
+  useEffect(() => {
+    if (selectedObjectId && meshRefs.current[selectedObjectId]) {
+      setGizmoReady(true);
+    } else {
+      setGizmoReady(false);
+    }
+  }, [selectedObjectId, sceneObjects]);
+
   return (
     <Canvas
       shadows
@@ -185,16 +209,18 @@ function Viewport3D({
           weightPaintBone={weightPaintBone}
           onSelect={onSelectObject}
           onUpdate={onUpdateObject}
+          meshRef={(ref: any) => { if (ref) meshRefs.current[obj.id] = ref; }}
         />
       ))}
 
-      {/* TransformControls — seçili nesneye bağla (gizmo açıkken) */}
-      {selectedObjectId && editorMode === 'object' && showGizmo && (
+      {/* TransformControls — gerçek drei gizmo (gizmo açıkken) */}
+      {selectedObjectId && editorMode === 'object' && showGizmo && gizmoReady && (
         <TransformControlsWrapper
           objectId={selectedObjectId}
           sceneObjects={sceneObjects}
           transformMode={transformMode}
           onUpdateObject={onUpdateObject}
+          meshRefs={meshRefs}
         />
       )}
 
@@ -240,6 +266,7 @@ function SceneMesh({
   weightPaintBone,
   onSelect,
   onUpdate,
+  meshRef: externalMeshRef,
 }: {
   obj: SceneObject3D;
   selected: boolean;
@@ -248,8 +275,15 @@ function SceneMesh({
   weightPaintBone: string | null;
   onSelect: (id: string | null) => void;
   onUpdate: (id: string, updates: Partial<SceneObject3D>) => void;
+  meshRef?: (ref: any) => void;
 }) {
-  const meshRef = useRef<any>(null);
+  const internalMeshRef = useRef<any>(null);
+
+  // External ref callback
+  const setRef = useCallback((ref: any) => {
+    internalMeshRef.current = ref;
+    if (externalMeshRef) externalMeshRef(ref);
+  }, [externalMeshRef]);
 
   // Weight paint modunda vertex color ile ağırlık görselleştirme
   const isWeightPaintMode = editorMode === 'weight-paint' && weightPaintBone;
@@ -299,7 +333,7 @@ function SceneMesh({
 
   return (
     <mesh
-      ref={meshRef}
+      ref={setRef}
       position={obj.position}
       rotation={obj.rotation}
       scale={obj.scale}
@@ -355,69 +389,43 @@ function TransformControlsWrapper({
   sceneObjects,
   transformMode,
   onUpdateObject,
+  meshRefs,
 }: {
   objectId: string;
   sceneObjects: SceneObject3D[];
   transformMode: 'move' | 'rotate' | 'scale';
   onUpdateObject: (id: string, updates: Partial<SceneObject3D>) => void;
+  meshRefs: React.MutableRefObject<Record<string, any>>;
 }) {
   const obj = sceneObjects.find((o) => o.id === objectId);
-  if (!obj) return null;
+  const meshRef = meshRefs.current[objectId];
+  if (!obj || !meshRef) return null;
 
-  // R3F TransformControls için ref yerine object kullan
-  // Basit yaklaşım: gizmo çizimi
+  const mode = transformMode === 'move' ? 'translate' : transformMode;
+
   return (
-    <group position={obj.position}>
-      {/* Transform gizmo görselleştirme — basit eksen çizgileri */}
-      {transformMode === 'move' && (
-        <>
-          <mesh position={[1, 0, 0]}>
-            <boxGeometry args={[2, 0.05, 0.05]} />
-            <meshBasicMaterial color="#ef4444" />
-          </mesh>
-          <mesh position={[0, 1, 0]}>
-            <boxGeometry args={[0.05, 2, 0.05]} />
-            <meshBasicMaterial color="#22c55e" />
-          </mesh>
-          <mesh position={[0, 0, 1]}>
-            <boxGeometry args={[0.05, 0.05, 2]} />
-            <meshBasicMaterial color="#3b82f6" />
-          </mesh>
-        </>
-      )}
-      {transformMode === 'rotate' && (
-        <>
-          <mesh rotation={[0, 0, Math.PI / 2]}>
-            <torusGeometry args={[1, 0.02, 8, 32]} />
-            <meshBasicMaterial color="#ef4444" />
-          </mesh>
-          <mesh>
-            <torusGeometry args={[1, 0.02, 8, 32]} />
-            <meshBasicMaterial color="#22c55e" />
-          </mesh>
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[1, 0.02, 8, 32]} />
-            <meshBasicMaterial color="#3b82f6" />
-          </mesh>
-        </>
-      )}
-      {transformMode === 'scale' && (
-        <>
-          <mesh position={[0.5, 0, 0]}>
-            <boxGeometry args={[1, 0.05, 0.05]} />
-            <meshBasicMaterial color="#ef4444" />
-          </mesh>
-          <mesh position={[0, 0.5, 0]}>
-            <boxGeometry args={[0.05, 1, 0.05]} />
-            <meshBasicMaterial color="#22c55e" />
-          </mesh>
-          <mesh position={[0, 0, 0.5]}>
-            <boxGeometry args={[0.05, 0.05, 1]} />
-            <meshBasicMaterial color="#3b82f6" />
-          </mesh>
-        </>
-      )}
-    </group>
+    <DreiTransformControls
+      object={meshRef}
+      mode={mode}
+      size={0.8}
+      onObjectChange={() => {
+        const m = meshRef;
+        if (!m) return;
+        if (transformMode === 'move') {
+          onUpdateObject(objectId, {
+            position: [m.position.x, m.position.y, m.position.z],
+          });
+        } else if (transformMode === 'rotate') {
+          onUpdateObject(objectId, {
+            rotation: [m.rotation.x, m.rotation.y, m.rotation.z],
+          });
+        } else if (transformMode === 'scale') {
+          onUpdateObject(objectId, {
+            scale: [m.scale.x, m.scale.y, m.scale.z],
+          });
+        }
+      }}
+    />
   );
 }
 
@@ -1586,6 +1594,7 @@ export function Nexus3DStudioView() {
               editorMode={editorMode}
               weightPaintBone={weightPaintBone}
               onUpdateObject={updateObject}
+              showGizmo={showGizmo}
             />
           </Suspense>
 
