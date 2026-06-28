@@ -44,10 +44,10 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   width: "device-width",
-  initialScale: 1,
-  maximumScale: 5,
-  userScalable: true,
-  themeColor: "#007acc",
+  initialScale: 0.4,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#00ddff",
   viewportFit: "cover",
 };
 
